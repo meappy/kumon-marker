@@ -1,0 +1,46 @@
+# Environment and secrets
+.env
+.env.*
+*.env
+secrets/
+config.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Data files (large PDFs)
+data/scans/incoming/*.pdf
+data/marked/*.pdf
+
+# Node (for frontend)
+node_modules/
+.next/
+
+# Helm
+*.tgz
+
+# Google OAuth tokens
+token.json
+credentials.json
+
+# User data (scans, results, reports)
+scans/
+marked/
+reports/
+results/
+archive/
