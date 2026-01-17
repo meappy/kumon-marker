@@ -142,19 +142,29 @@ def _vision_validate_cli(image_bytes: bytes, prompt: str) -> dict | None:
     """Validate using Claude CLI."""
     import subprocess
     import tempfile
+    import sys
 
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(image_bytes)
         image_path = f.name
 
     try:
+        print(f"Running claude CLI validation on {image_path}...", flush=True)
         result = subprocess.run(
             ["claude", "-p", prompt, image_path],
             capture_output=True,
             text=True,
             timeout=60,
         )
+        print(f"Claude CLI returned: exit_code={result.returncode}", flush=True)
+        if result.stderr:
+            print(f"Claude CLI stderr: {result.stderr}", flush=True)
+        if result.stdout:
+            print(f"Claude CLI stdout (first 200 chars): {result.stdout[:200]}", flush=True)
         return _parse_vision_response(result.stdout)
+    except Exception as e:
+        print(f"Claude CLI error: {e}", file=sys.stderr, flush=True)
+        raise
     finally:
         import os
         os.unlink(image_path)
