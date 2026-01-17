@@ -4,23 +4,19 @@ metadata:
   name: kumon-marker
   namespace: argocd
 spec:
-  # Automatically delete Applications when branch is deleted
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - git:
-        repoURL: https://github.com/meappy/kumon-marker.git
-        revision: HEAD
-        branches:
-          - pattern: 'main'
-          - pattern: 'fix/*'
-          - pattern: 'feat/*'
-          - pattern: 'feature/*'
+    - list:
+        elements:
+          - branch: main
+            branchSafe: main
+          - branch: dev
+            branchSafe: dev
   template:
     metadata:
-      name: 'kumon-marker-{{ .branch | replace "/" "-" }}'
+      name: 'kumon-marker-{{ .branchSafe }}'
       namespace: argocd
-      # Clean up when branch is deleted
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
@@ -36,7 +32,6 @@ spec:
             - values-argocd.yaml
       destination:
         server: https://kubernetes.default.svc
-        # Deploy to same namespace as production
         namespace: kumon-marker
       syncPolicy:
         automated:
