@@ -75,6 +75,12 @@ config:
   # Job queue settings
   jobs:
     maxConcurrent: 1
+  # Multi-user authentication
+  auth:
+    # List of allowed email addresses (can also be comma-separated string for backwards compatibility)
+    allowedUsers: []
+    # Secret for signing session cookies (change in production)
+    sessionSecret: ""
 
 # RabbitMQ configuration
 rabbitmq:

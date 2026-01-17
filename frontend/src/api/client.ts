@@ -64,7 +64,7 @@ export interface Job {
   id: string;
   worksheet_id: string;
   user_id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   error: string | null;
   created_at: string | null;

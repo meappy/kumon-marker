@@ -1,0 +1,92 @@
+# Local values for OrbStack deployment
+# Copy this to values-local.yaml and fill in your credentials
+# DO NOT commit values-local.yaml to git!
+
+image:
+  repository: ghcr.io/meappy/kumon-marker
+  tag: dev
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+imageCredentials:
+  enabled: true
+  username: your-github-username
+  password: ghp_YOUR_GITHUB_PAT_HERE
+
+service:
+  type: NodePort
+  port: 8000
+  nodePort: 30080
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: ""  # Use default
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 4Gi
+  requests:
+    cpu: 100m
+    memory: 2Gi
+
+config:
+  claude:
+    mode: "cli"  # Options: "ollama", "gemini", "api", "cli"
+    model: "claude-sonnet-4-20250514"
+    # For CLI mode, credentials JSON with OAuth tokens (pretty-printed for readability)
+    credentials: |
+      {
+        "claudeAiOauth": {
+          "accessToken": "sk-ant-oat01-YOUR_ACCESS_TOKEN",
+          "refreshToken": "sk-ant-ort01-YOUR_REFRESH_TOKEN",
+          "expiresAt": 1768661911414,
+          "scopes": [
+            "user:inference",
+            "user:profile",
+            "user:sessions:claude_code"
+          ],
+          "subscriptionType": "max",
+          "rateLimitTier": "default_claude_max_5x"
+        }
+      }
+  worksheet:
+    questionsPerPage: 10
+    customPrompt: ""  # Use default prompt
+  ollama:
+    baseUrl: "http://localhost:11434"
+    model: "llava:7b"
+  anthropic:
+    apiKey: ""
+    model: "claude-haiku-3-5-20241022"
+  gemini:
+    apiKey: "YOUR_GEMINI_API_KEY"
+    model: "gemini-2.0-flash"
+  google:
+    clientId: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+    clientSecret: "GOCSPX-YOUR_CLIENT_SECRET"
+  # Multi-user auth
+  auth:
+    # List of allowed email addresses
+    allowedUsers:
+      - "user1@example.com"
+      - "user2@example.com"
+    sessionSecret: "change-this-to-a-random-secret"
+
+# RabbitMQ configuration
+rabbitmq:
+  enabled: true
+  password: "change-this-rabbitmq-password"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  password: "change-this-postgresql-password"
+
+# Worker configuration
+worker:
+  enabled: true
+  replicas: 1

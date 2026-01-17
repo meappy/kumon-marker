@@ -127,7 +127,11 @@ spec:
             {{- if .Values.config.auth }}
             {{- if .Values.config.auth.allowedUsers }}
             - name: ALLOWED_USERS
+              {{- if kindIs "slice" .Values.config.auth.allowedUsers }}
+              value: {{ join "," .Values.config.auth.allowedUsers | quote }}
+              {{- else }}
               value: {{ .Values.config.auth.allowedUsers | quote }}
+              {{- end }}
             {{- end }}
             {{- if .Values.config.auth.sessionSecret }}
             - name: SESSION_SECRET
