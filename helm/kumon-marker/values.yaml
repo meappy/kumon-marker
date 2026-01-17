@@ -2,6 +2,10 @@
 
 replicaCount: 1
 
+# Use existing secret instead of creating one from values
+# If set, secrets are read from this K8s secret instead of config values
+existingSecret: ""
+
 image:
   repository: ghcr.io/meappy/kumon-marker
   tag: latest

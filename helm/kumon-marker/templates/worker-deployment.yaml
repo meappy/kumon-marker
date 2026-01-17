@@ -37,7 +37,7 @@ spec:
             - name: CLAUDE_CREDENTIALS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  name: {{ include "kumon-marker.secretName" . }}
                   key: claude-credentials
           volumeMounts:
             - name: claude-home
@@ -64,7 +64,7 @@ spec:
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  name: {{ include "kumon-marker.secretName" . }}
                   key: anthropic-api-key
                   optional: true
             {{- end }}
@@ -74,7 +74,7 @@ spec:
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  name: {{ include "kumon-marker.secretName" . }}
                   key: gemini-api-key
                   optional: true
             {{- end }}
@@ -94,7 +94,7 @@ spec:
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  name: {{ include "kumon-marker.secretName" . }}
                   key: rabbitmq-password
                   optional: true
             - name: RABBITMQ_URL
@@ -103,7 +103,7 @@ spec:
             - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  name: {{ include "kumon-marker.secretName" . }}
                   key: postgresql-password
                   optional: true
             - name: DATABASE_URL

@@ -47,3 +47,14 @@ Selector labels
 app.kubernetes.io/name: {{ include "kumon-marker.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Secret name - returns existingSecret if set, otherwise generated name
+*/}}
+{{- define "kumon-marker.secretName" -}}
+{{- if .Values.existingSecret }}
+{{- .Values.existingSecret }}
+{{- else }}
+{{- include "kumon-marker.fullname" . }}-secrets
+{{- end }}
+{{- end }}

@@ -37,6 +37,9 @@ node_modules/
 helm/*/values-local.yaml
 helm/*/values-*.local.yaml
 
+# Argo CD secrets (not the example)
+argocd/repo-secret.yaml
+
 # Google OAuth tokens
 token.json
 credentials.json

@@ -18,6 +18,9 @@ Usage:
     ./scripts/version.py sync                    # Sync all files to VERSION file
     ./scripts/version.py release patch           # Bump, commit, tag, and push
     ./scripts/version.py check-tag               # Check if current version has a tag
+
+    # With additional Helm values files:
+    ./scripts/version.py --values-file helm/kumon-marker/values-prod.yaml set 1.0.0
 """
 
 import argparse
@@ -31,7 +34,7 @@ from pathlib import Path
 class VersionManager:
     """Manages versions across project files."""
 
-    def __init__(self):
+    def __init__(self, values_files: list[Path] | None = None):
         self.project_root = Path(__file__).parent.parent
         self.files = {
             "VERSION": self.project_root / "VERSION",
@@ -40,6 +43,7 @@ class VersionManager:
             "config.py": self.project_root / "backend" / "app" / "core" / "config.py",
             "Chart.yaml": self.project_root / "helm" / "kumon-marker" / "Chart.yaml",
         }
+        self.values_files = values_files or []
 
     def _parse_version(self, version: str) -> tuple[int, int, int]:
         """Parse version string into (major, minor, patch)."""
@@ -170,6 +174,19 @@ class VersionManager:
             multiline=True
         )
         print(f"  ✓ helm/kumon-marker/Chart.yaml")
+
+        # Update any additional values files (image.tag)
+        for values_file in self.values_files:
+            if values_file.exists():
+                self._update_file(
+                    values_file,
+                    r'^  tag: "[^"]*"',
+                    f'  tag: "{new_version}"',
+                    multiline=True
+                )
+                print(f"  ✓ {values_file.relative_to(self.project_root)}")
+            else:
+                print(f"  ⚠ {values_file} not found, skipping")
 
     def bump(self, bump_type: str, create_tag: bool = False) -> None:
         """Bump version by type (major, minor, patch)."""
@@ -367,6 +384,7 @@ Examples:
   %(prog)s bump major           Breaking change: 0.2.1 -> 1.0.0
   %(prog)s bump patch --tag     Bump and create git tag
   %(prog)s set 1.0.0            Set specific version
+  %(prog)s --values-file helm/kumon-marker/values-prod.yaml set 1.0.0
   %(prog)s sync                 Sync all files to VERSION file
   %(prog)s check-tag            Check if version has a git tag
   %(prog)s release patch        Full release: bump, commit, tag, push
@@ -376,6 +394,15 @@ Version types:
   minor   New features, backwards compatible (0.X.0)
   major   Breaking changes (X.0.0)
         """
+    )
+
+    # Global argument for values files
+    parser.add_argument(
+        "--values-file",
+        action="append",
+        dest="values_files",
+        metavar="FILE",
+        help="Additional Helm values file to update image.tag (can be repeated)"
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
@@ -428,7 +455,17 @@ Version types:
         parser.print_help()
         sys.exit(0)
 
-    manager = VersionManager()
+    # Convert values file paths to Path objects relative to project root
+    values_files = []
+    if args.values_files:
+        project_root = Path(__file__).parent.parent
+        for vf in args.values_files:
+            path = Path(vf)
+            if not path.is_absolute():
+                path = project_root / path
+            values_files.append(path)
+
+    manager = VersionManager(values_files=values_files)
 
     if args.command == "show":
         manager.show()
