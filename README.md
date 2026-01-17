@@ -1,5 +1,10 @@
 # Kumon Marker
 
+[![Release](https://github.com/meappy/kumon-marker/actions/workflows/release.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/release.yml)
+[![CI](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/meappy/kumon-marker)](https://github.com/meappy/kumon-marker/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Automated marking system for Kumon worksheets using vision AI models.
 
 ## Features
@@ -125,6 +130,24 @@ kumon-marker/
 └── VERSION            # Current version
 ```
 
+### CI/CD & GitOps
+
+This project uses **Semantic Release** for automated versioning and **Argo CD** for GitOps deployments.
+
+```bash
+# Feature branch → builds branch-<name> image
+git checkout -b feature/my-feature
+git commit -m "feat: add new feature"
+git push origin feature/my-feature
+
+# Merge to main → auto version bump + deploy
+# fix: commits → patch (0.2.8 → 0.2.9)
+# feat: commits → minor (0.2.8 → 0.3.0)
+# BREAKING CHANGE: → major (0.2.8 → 1.0.0)
+```
+
+See [docs/GITOPS.md](docs/GITOPS.md) for detailed workflow documentation.
+
 ### Version Management
 
 All version numbers are kept in sync across files:
@@ -133,10 +156,13 @@ All version numbers are kept in sync across files:
 # Show current versions
 ./scripts/version.py show
 
-# Bump version
+# Bump version (with optional values file for GitOps)
 ./scripts/version.py bump patch    # Bug fix: 0.2.4 -> 0.2.5
 ./scripts/version.py bump minor    # Feature: 0.2.4 -> 0.3.0
 ./scripts/version.py bump major    # Breaking: 0.2.4 -> 1.0.0
+
+# Include Helm values file in version update
+./scripts/version.py --values-file helm/kumon-marker/values-prod.yaml bump patch
 
 # Set specific version
 ./scripts/version.py set 1.0.0
