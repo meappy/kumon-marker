@@ -23,7 +23,7 @@ function App() {
   const [showGDrive, setShowGDrive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [, setSyncing] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [timezone, setTimezone] = useState<string>('Australia/Sydney');
 
@@ -253,9 +253,7 @@ function App() {
         onQueueClick={() => setShowQueue(true)}
         onSettingsClick={() => setShowSettings(true)}
         onLogout={handleLogout}
-        syncing={syncing}
         activeJobs={activeJobs}
-        queueEnabled={queueEnabled}
       />
 
       {/* Notification banner */}

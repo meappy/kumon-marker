@@ -6,12 +6,10 @@ interface HeaderProps {
   onQueueClick: () => void;
   onSettingsClick: () => void;
   onLogout: () => void;
-  syncing: boolean;
   activeJobs?: Job[];
-  queueEnabled?: boolean;
 }
 
-export function Header({ user, onGDriveClick, onQueueClick, onSettingsClick, onLogout, syncing, activeJobs = [], queueEnabled = false }: HeaderProps) {
+export function Header({ user, onGDriveClick, onQueueClick, onSettingsClick, onLogout, activeJobs = [] }: HeaderProps) {
   // Calculate queue status
   const queuedCount = activeJobs.filter((j) => j.status === 'queued').length;
   const processingJobs = activeJobs.filter((j) => j.status === 'processing');

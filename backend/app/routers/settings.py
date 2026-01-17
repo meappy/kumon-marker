@@ -7,7 +7,6 @@ from app.core.config import (
     settings,
     get_runtime_settings,
     save_runtime_settings,
-    get_effective_setting,
 )
 
 router = APIRouter()

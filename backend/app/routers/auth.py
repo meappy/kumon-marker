@@ -1,7 +1,6 @@
 """Google OAuth authentication endpoints."""
 
 import json
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -19,7 +18,6 @@ from app.core.session import (
     get_current_user,
     get_current_user_optional,
     get_user_token_path,
-    get_user_data_dir,
 )
 
 router = APIRouter()

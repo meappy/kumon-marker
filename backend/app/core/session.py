@@ -1,12 +1,10 @@
 """Session management for user authentication."""
 
 import hashlib
-import json
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Cookie, HTTPException, Request, Response
+from fastapi import Cookie, HTTPException, Response
 from pydantic import BaseModel
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
