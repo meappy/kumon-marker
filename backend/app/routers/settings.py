@@ -19,6 +19,12 @@ class SettingValue(BaseModel):
     editable: bool
 
 
+class VersionInfo(BaseModel):
+    """Version information."""
+    app_version: str
+    image_tag: str
+
+
 class AppSettings(BaseModel):
     """All application settings."""
     anthropic_api_key: SettingValue
@@ -26,6 +32,7 @@ class AppSettings(BaseModel):
     gdrive_folder: SettingValue
     timezone: SettingValue
     google_configured: bool  # Whether OAuth is set up
+    version: VersionInfo
 
 
 class SettingsUpdate(BaseModel):
@@ -76,6 +83,10 @@ async def get_settings():
         gdrive_folder=get_setting_with_source("gdrive_folder", settings.gdrive_folder),
         timezone=get_setting_with_source("timezone", settings.timezone),
         google_configured=bool(settings.google_client_id and settings.google_client_secret),
+        version=VersionInfo(
+            app_version=settings.app_version,
+            image_tag=settings.image_tag,
+        ),
     )
 
 

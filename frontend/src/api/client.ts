@@ -89,12 +89,18 @@ export interface SettingValue {
   editable: boolean;
 }
 
+export interface VersionInfo {
+  app_version: string;
+  image_tag: string;
+}
+
 export interface AppSettings {
   anthropic_api_key: SettingValue;
   anthropic_model: SettingValue;
   gdrive_folder: SettingValue;
   timezone: SettingValue;
   google_configured: boolean;
+  version: VersionInfo;
 }
 
 export interface GoogleAuthStatus {

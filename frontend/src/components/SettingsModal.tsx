@@ -279,9 +279,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between p-4 border-t">
-          <span className="text-xs text-gray-400">
-            v{__APP_VERSION__}
-          </span>
+          <div className="text-xs text-gray-400 space-y-0.5">
+            <div>App: v{settings?.version?.app_version || __APP_VERSION__}</div>
+            <div>Image: {settings?.version?.image_tag || 'local'}</div>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
