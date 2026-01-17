@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # API
     app_name: str = "Kumon Marker"
-    app_version: str = "0.2.7"  # Can be overridden by APP_VERSION env var
+    app_version: str = "0.2.8"  # Can be overridden by APP_VERSION env var
     debug: bool = False
 
     # Analysis mode: "ollama" (recommended), "gemini", "api" (Anthropic), or "cli" (Claude Code CLI)
