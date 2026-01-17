@@ -98,8 +98,12 @@ jobs:
         id: branch
         run: |
           BRANCH=${GITHUB_REF#refs/heads/}
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          TAG="dev-$SHORT_SHA"
           echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "Source branch: $BRANCH"
+          echo "Image tag: $TAG"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -121,7 +125,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.branch.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -146,9 +150,9 @@ jobs:
           git merge origin/${{ steps.branch.outputs.name }} -m "chore: merge ${{ steps.branch.outputs.name }} into dev [skip ci]"
 
           # Update image tag in values-argocd.yaml
-          sed -i 's|tag: ".*"|tag: "dev"|' helm/kumon-marker/values-argocd.yaml
+          sed -i 's|tag: ".*"|tag: "${{ steps.branch.outputs.tag }}"|' helm/kumon-marker/values-argocd.yaml
           git add helm/kumon-marker/values-argocd.yaml
-          git diff --cached --quiet || git commit -m "chore: set image tag to dev [skip ci]"
+          git diff --cached --quiet || git commit -m "chore: set image tag to ${{ steps.branch.outputs.tag }} [skip ci]"
 
           # Push dev branch
           git push origin dev
@@ -160,7 +164,7 @@ jobs:
           echo "=========================================="
           echo ""
           echo "Branch: ${{ steps.branch.outputs.name }} → merged to dev"
-          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.branch.outputs.tag }}"
           echo ""
           echo "Argo CD will automatically sync kumon-marker-dev"
           echo ""
