@@ -2,7 +2,6 @@
 
 [![Release](https://github.com/meappy/kumon-marker/actions/workflows/release.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/release.yml)
 [![CI](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml)
-[![GitHub release](https://img.shields.io/github/v/release/meappy/kumon-marker)](https://github.com/meappy/kumon-marker/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Automated marking system for Kumon worksheets using vision AI models.
