@@ -7,7 +7,7 @@
       "changelogFile": "CHANGELOG.md"
     }],
     ["@semantic-release/exec", {
-      "prepareCmd": "python scripts/version.py --values-file helm/kumon-marker/values-prod.yaml set ${nextRelease.version}"
+      "prepareCmd": "python scripts/version.py --values-file helm/kumon-marker/values-argocd.yaml set ${nextRelease.version}"
     }],
     ["@semantic-release/git", {
       "assets": [
@@ -17,7 +17,7 @@
         "backend/pyproject.toml",
         "backend/app/core/config.py",
         "helm/kumon-marker/Chart.yaml",
-        "helm/kumon-marker/values-prod.yaml"
+        "helm/kumon-marker/values-argocd.yaml"
       ],
       "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
     }],

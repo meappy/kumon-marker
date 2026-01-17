@@ -17,7 +17,7 @@ This project uses **Semantic Release** for automated versioning and **Argo CD** 
                                 │                                              │
                                 ▼                                              │
                         ┌─────────────────┐                                    │
-                        │ values-prod.yaml │                                   │
+                        │ values-argocd.yaml │                                   │
                         │   tag: "0.3.0"   │                                   │
                         └─────────────────┘                                    │
                                 │                                              │
@@ -74,7 +74,7 @@ git push origin main
 
 2. **Semantic Release** then:
    - Updates `VERSION`, `package.json`, `pyproject.toml`, `Chart.yaml`
-   - Updates `values-prod.yaml` with new image tag
+   - Updates `values-argocd.yaml` with new image tag
    - Generates `CHANGELOG.md`
    - Commits changes with `[skip ci]`
    - Creates git tag (e.g., `v0.3.0`)
@@ -86,9 +86,9 @@ git push origin main
 
 ### 3. Automatic Deployment (Argo CD)
 
-Argo CD watches the `main` branch and auto-syncs when `values-prod.yaml` changes:
+Argo CD watches the `main` branch and auto-syncs when `values-argocd.yaml` changes:
 
-1. Detects `values-prod.yaml` has new `image.tag`
+1. Detects `values-argocd.yaml` has new `image.tag`
 2. Runs `helm template` with updated values
 3. Applies changes to Kubernetes
 4. Deployment pulls new image from GHCR
@@ -129,7 +129,7 @@ BREAKING CHANGE: The /api/worksheets endpoint now returns paginated results
 ### `.releaserc.json`
 Semantic Release configuration - defines plugins and version update commands.
 
-### `helm/kumon-marker/values-prod.yaml`
+### `helm/kumon-marker/values-argocd.yaml`
 Production values for Argo CD. Contains `image.tag` which is auto-updated.
 
 ### `argocd/application.yaml`
@@ -163,8 +163,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 ### Manual Version Bump (without commits)
 ```bash
-# Bump and update all files including values-prod.yaml
-./scripts/version.py --values-file helm/kumon-marker/values-prod.yaml bump patch
+# Bump and update all files including values-argocd.yaml
+./scripts/version.py --values-file helm/kumon-marker/values-argocd.yaml bump patch
 ```
 
 ### Rollback
@@ -176,8 +176,8 @@ git push origin main
 # Option 2: Manual helm rollback
 helm rollback kumon-marker -n kumon-marker
 
-# Option 3: Update values-prod.yaml to previous version
-# Edit helm/kumon-marker/values-prod.yaml, set tag to previous version
+# Option 3: Update values-argocd.yaml to previous version
+# Edit helm/kumon-marker/values-argocd.yaml, set tag to previous version
 # Commit and push - Argo CD will sync
 ```
 
@@ -187,7 +187,7 @@ Sensitive values are stored in Kubernetes Secret `kumon-marker-secrets`, not in 
 
 The Helm chart uses `existingSecret` to reference this pre-created secret:
 ```yaml
-# values-prod.yaml
+# values-argocd.yaml
 existingSecret: "kumon-marker-secrets"
 ```
 

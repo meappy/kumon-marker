@@ -82,8 +82,10 @@ jobs:
     needs: [lint-backend, lint-frontend]
     if: github.event_name == 'push'
     permissions:
-      contents: read
+      contents: write
       packages: write
+    outputs:
+      tag: ${{ steps.branch.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -94,8 +96,10 @@ jobs:
           BRANCH=${GITHUB_REF#refs/heads/}
           # Sanitise branch name for Docker tag
           SAFE_BRANCH=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9._-]/-/g' | cut -c1-128)
+          TAG="branch-$SAFE_BRANCH"
           echo "name=$SAFE_BRANCH" >> $GITHUB_OUTPUT
-          echo "Branch: $SAFE_BRANCH"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Branch: $SAFE_BRANCH, Tag: $TAG"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -117,6 +121,35 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:branch-${{ steps.branch.outputs.name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.branch.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Update values-argocd.yaml to trigger Argo CD deployment
+  deploy-branch:
+    name: Deploy Branch
+    runs-on: ubuntu-latest
+    needs: [build-branch]
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update values-argocd.yaml
+        run: |
+          TAG="${{ needs.build-branch.outputs.tag }}"
+          sed -i "s|tag: \".*\"|tag: \"$TAG\"|" helm/kumon-marker/values-argocd.yaml
+          echo "Updated values-argocd.yaml to tag: $TAG"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/kumon-marker/values-argocd.yaml
+          git diff --cached --quiet || git commit -m "chore: deploy ${{ needs.build-branch.outputs.tag }} [skip ci]"
+          git push origin main

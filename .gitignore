@@ -54,3 +54,4 @@ archive/
 # Prototype/test files
 prototype_*.py
 test_*.png
+backend/uv.lock
