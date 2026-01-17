@@ -129,33 +129,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Merge to dev branch
+      - name: Update dev branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch all branches
-          git fetch origin
-
-          # Create dev branch if it doesn't exist
-          if ! git ls-remote --exit-code --heads origin dev; then
-            echo "Creating dev branch from main"
-            git checkout -b dev origin/main
-            git push origin dev
-          fi
-
-          # Checkout dev and merge feature branch
-          git checkout dev
-          git pull origin dev
-          git merge origin/${{ steps.branch.outputs.name }} -m "chore: merge ${{ steps.branch.outputs.name }} into dev [skip ci]"
-
           # Update image tag in values-argocd.yaml
           sed -i 's|tag: ".*"|tag: "${{ steps.branch.outputs.tag }}"|' helm/kumon-marker/values-argocd.yaml
           git add helm/kumon-marker/values-argocd.yaml
-          git diff --cached --quiet || git commit -m "chore: set image tag to ${{ steps.branch.outputs.tag }} [skip ci]"
+          git commit -m "chore: set image tag to ${{ steps.branch.outputs.tag }} [skip ci]"
 
-          # Push dev branch
-          git push origin dev
+          # Force push feature branch as dev (no merge conflicts)
+          git push origin HEAD:dev --force
 
       - name: Print deployment info
         run: |
