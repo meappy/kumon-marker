@@ -1,0 +1,75 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kumon-marker.fullname" . }}-rabbitmq
+  labels:
+    {{- include "kumon-marker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kumon-marker.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "kumon-marker.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: "{{ .Values.rabbitmq.image }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: amqp
+              containerPort: 5672
+              protocol: TCP
+            - name: management
+              containerPort: 15672
+              protocol: TCP
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: {{ .Values.rabbitmq.username | quote }}
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: rabbitmq-password
+                  optional: true
+          volumeMounts:
+            {{- if .Values.rabbitmq.persistence.enabled }}
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+            {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - -q
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - -q
+                - check_running
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
+      volumes:
+        {{- if .Values.rabbitmq.persistence.enabled }}
+        - name: rabbitmq-data
+          persistentVolumeClaim:
+            claimName: {{ include "kumon-marker.fullname" . }}-rabbitmq-data
+        {{- else }}
+        - name: rabbitmq-data
+          emptyDir: {}
+        {{- end }}
+{{- end }}

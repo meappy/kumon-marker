@@ -1,0 +1,137 @@
+# Default values for kumon-marker
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/meappy/kumon-marker
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: kumon.localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  # Keep the PVC when helm release is deleted (prevents data loss)
+  keepOnDelete: true
+
+config:
+  # Mode: "ollama" (recommended), "gemini", "api" (Anthropic), or "cli" (Claude Code CLI)
+  claude:
+    mode: "ollama"
+    # Model for CLI mode (claude-sonnet-4-20250514, claude-opus-4-20250514, etc.)
+    model: "claude-sonnet-4-20250514"
+    # Credentials JSON for CLI mode (from macOS Keychain: security find-generic-password -s "Claude Code-credentials" -w)
+    credentials: ""
+
+  # Worksheet analysis settings
+  worksheet:
+    questionsPerPage: 10
+    # Custom prompt template (uses {sheet_id}, {page_num}, {questions_per_page} placeholders)
+    # Leave empty to use default prompt
+    customPrompt: ""
+  ollama:
+    # Only used when claude.mode="ollama" - local LLM, no rate limits
+    baseUrl: "http://host.docker.internal:11434"
+    model: "moondream"
+  anthropic:
+    # Only used when claude.mode="api"
+    apiKey: ""
+    model: "claude-sonnet-4-20250514"
+  gemini:
+    # Only used when claude.mode="gemini" (get from https://aistudio.google.com/apikey)
+    apiKey: ""
+    model: "gemini-2.0-flash"
+  google:
+    clientId: ""
+    clientSecret: ""
+  googleDrive:
+    folder: "From_BrotherDevice"
+  # Job queue settings
+  jobs:
+    maxConcurrent: 1
+
+# RabbitMQ configuration
+rabbitmq:
+  enabled: true
+  image: rabbitmq:3.13-management-alpine
+  port: 5672
+  managementPort: 15672
+  username: kumon
+  password: ""  # Set in values-local.yaml or via --set
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    keepOnDelete: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  port: 5432
+  database: kumon
+  username: kumon
+  password: ""  # Set in values-local.yaml or via --set
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    keepOnDelete: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Worker configuration
+worker:
+  enabled: true
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 2Gi
+    requests:
+      cpu: 100m
+      memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

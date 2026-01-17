@@ -1,0 +1,22 @@
+{{- if and .Values.rabbitmq.enabled .Values.rabbitmq.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kumon-marker.fullname" . }}-rabbitmq-data
+  labels:
+    {{- include "kumon-marker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+  {{- if .Values.rabbitmq.persistence.keepOnDelete }}
+  annotations:
+    "helm.sh/resource-policy": "keep"
+  {{- end }}
+spec:
+  accessModes:
+    - {{ .Values.rabbitmq.persistence.accessMode }}
+  {{- if .Values.rabbitmq.persistence.storageClass }}
+  storageClassName: {{ .Values.rabbitmq.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.rabbitmq.persistence.size }}
+{{- end }}

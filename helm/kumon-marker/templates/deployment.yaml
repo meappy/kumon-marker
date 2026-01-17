@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kumon-marker.fullname" . }}
+  labels:
+    {{- include "kumon-marker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kumon-marker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "kumon-marker.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
+      initContainers:
+        - name: setup-claude-credentials
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /claude-home/.claude
+              echo "$CLAUDE_CREDENTIALS" > /claude-home/.claude/.credentials.json
+              chmod 600 /claude-home/.claude/.credentials.json
+          env:
+            - name: CLAUDE_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: claude-credentials
+          volumeMounts:
+            - name: claude-home
+              mountPath: /claude-home
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: APP_VERSION
+              value: {{ .Chart.AppVersion | quote }}
+            - name: CLAUDE_MODE
+              value: {{ .Values.config.claude.mode | quote }}
+            - name: CLAUDE_MODEL
+              value: {{ .Values.config.claude.model | quote }}
+            - name: OLLAMA_BASE_URL
+              value: {{ .Values.config.ollama.baseUrl | quote }}
+            - name: OLLAMA_MODEL
+              value: {{ .Values.config.ollama.model | quote }}
+            {{- if .Values.config.anthropic.apiKey }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: anthropic-api-key
+                  optional: true
+            {{- end }}
+            - name: ANTHROPIC_MODEL
+              value: {{ .Values.config.anthropic.model | quote }}
+            {{- if .Values.config.gemini.apiKey }}
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: gemini-api-key
+                  optional: true
+            {{- end }}
+            - name: GEMINI_MODEL
+              value: {{ .Values.config.gemini.model | quote }}
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: google-client-id
+                  optional: true
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: google-client-secret
+                  optional: true
+            - name: GDRIVE_FOLDER
+              value: {{ .Values.config.googleDrive.folder | quote }}
+            - name: QUESTIONS_PER_PAGE
+              value: {{ .Values.config.worksheet.questionsPerPage | quote }}
+            {{- if .Values.config.worksheet.customPrompt }}
+            - name: CUSTOM_PROMPT
+              value: {{ .Values.config.worksheet.customPrompt | quote }}
+            {{- end }}
+            - name: DATA_DIR
+              value: /app/data
+            - name: MAX_CONCURRENT_JOBS
+              value: {{ .Values.config.jobs.maxConcurrent | default 1 | quote }}
+            {{- if .Values.rabbitmq.enabled }}
+            # RabbitMQ connection - password must be defined before URL for substitution
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: rabbitmq-password
+                  optional: true
+            - name: RABBITMQ_URL
+              value: "amqp://{{ .Values.rabbitmq.username }}:$(RABBITMQ_PASSWORD)@{{ include "kumon-marker.fullname" . }}-rabbitmq:{{ .Values.rabbitmq.port }}/"
+            {{- end }}
+            {{- if .Values.postgresql.enabled }}
+            # PostgreSQL connection - password must be defined before URL for substitution
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: postgresql-password
+                  optional: true
+            - name: DATABASE_URL
+              value: "postgresql://{{ .Values.postgresql.username }}:$(POSTGRESQL_PASSWORD)@{{ include "kumon-marker.fullname" . }}-postgresql:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
+            {{- end }}
+            {{- if .Values.config.auth }}
+            {{- if .Values.config.auth.allowedUsers }}
+            - name: ALLOWED_USERS
+              value: {{ .Values.config.auth.allowedUsers | quote }}
+            {{- end }}
+            {{- if .Values.config.auth.sessionSecret }}
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: session-secret
+                  optional: true
+            {{- end }}
+            {{- end }}
+            {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
+            - name: HOME
+              value: /claude-home
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
+            - name: claude-home
+              mountPath: /claude-home
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            timeoutSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kumon-marker.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
+        - name: claude-home
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

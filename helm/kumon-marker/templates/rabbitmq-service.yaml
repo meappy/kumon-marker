@@ -1,0 +1,23 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kumon-marker.fullname" . }}-rabbitmq
+  labels:
+    {{- include "kumon-marker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.rabbitmq.port }}
+      targetPort: amqp
+      protocol: TCP
+      name: amqp
+    - port: {{ .Values.rabbitmq.managementPort }}
+      targetPort: management
+      protocol: TCP
+      name: management
+  selector:
+    {{- include "kumon-marker.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+{{- end }}

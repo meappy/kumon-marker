@@ -1,9 +1,10 @@
 # Environment and secrets
 .env
-.env.*
-*.env
+.env.local
+.env.*.local
 secrets/
 config.local.json
+# Note: .env.example is committed as a template
 
 # Python
 __pycache__/
@@ -44,3 +45,7 @@ marked/
 reports/
 results/
 archive/
+
+# Prototype/test files
+prototype_*.py
+test_*.png

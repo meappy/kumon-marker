@@ -1,0 +1,80 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kumon-marker.fullname" . }}-postgresql
+  labels:
+    {{- include "kumon-marker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kumon-marker.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgresql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "kumon-marker.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: "{{ .Values.postgresql.image }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.fullname" . }}-secrets
+                  key: postgresql-password
+                  optional: true
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgresql-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.postgresql.username }}
+                - -d
+                - {{ .Values.postgresql.database }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ .Values.postgresql.username }}
+                - -d
+                - {{ .Values.postgresql.database }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+      volumes:
+        {{- if .Values.postgresql.persistence.enabled }}
+        - name: postgresql-data
+          persistentVolumeClaim:
+            claimName: {{ include "kumon-marker.fullname" . }}-postgresql-data
+        {{- else }}
+        - name: postgresql-data
+          emptyDir: {}
+        {{- end }}
+{{- end }}
