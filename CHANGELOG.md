@@ -1,3 +1,10 @@
+## [0.4.3](https://github.com/meappy/kumon-marker/compare/v0.4.2...v0.4.3) (2026-01-18)
+
+
+### Bug Fixes
+
+* UI alignment and Argo CD webhook trigger ([#2](https://github.com/meappy/kumon-marker/issues/2)) ([eb34da5](https://github.com/meappy/kumon-marker/commit/eb34da581389b89046116a8c3fec5ceb4e4f08e8))
+
 ## [0.4.2](https://github.com/meappy/kumon-marker/compare/v0.4.1...v0.4.2) (2026-01-18)
 
 
