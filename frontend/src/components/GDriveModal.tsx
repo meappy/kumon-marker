@@ -290,7 +290,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
                   </p>
                   {existingWorksheet && !activeJob && (
                     <p className="text-sm text-gray-500">
-                      Marked: {formatMarkedTime(existingWorksheet.timestamp, timezone)}
+                      Marked on {formatMarkedTime(existingWorksheet.timestamp, timezone)}
                     </p>
                   )}
                   {jobFailed && activeJob?.error && (
