@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/meappy/kumon-marker/compare/v0.4.12...v0.5.0) (2026-01-18)
+
+
+### Features
+
+* add graceful shutdown for worker to complete in-progress jobs ([7ec2a64](https://github.com/meappy/kumon-marker/commit/7ec2a64601dce2e15879aa52b63241353edaace7))
+
 ## [0.4.12](https://github.com/meappy/kumon-marker/compare/v0.4.11...v0.4.12) (2026-01-18)
 
 

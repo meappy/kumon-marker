@@ -7,7 +7,7 @@ existingSecret: "kumon-marker-secrets"
 
 image:
   repository: ghcr.io/meappy/kumon-marker
-  tag: "0.4.12"  # Updated automatically by CI/CD
+  tag: "0.5.0"  # Updated automatically by CI/CD
   pullPolicy: Always
 
 imagePullSecrets:
