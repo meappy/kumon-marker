@@ -1,3 +1,10 @@
+## [0.4.8](https://github.com/meappy/kumon-marker/compare/v0.4.7...v0.4.8) (2026-01-18)
+
+
+### Bug Fixes
+
+* workflow deadlock and consistent grade badge format ([#8](https://github.com/meappy/kumon-marker/issues/8)) ([30343c7](https://github.com/meappy/kumon-marker/commit/30343c74cf5fc97103559c82334b46ef9bdd499a))
+
 ## [0.4.7](https://github.com/meappy/kumon-marker/compare/v0.4.6...v0.4.7) (2026-01-18)
 
 
