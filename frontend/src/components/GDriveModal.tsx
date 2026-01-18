@@ -281,7 +281,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
                     )}
                     {existingWorksheet && !activeJob && (
                       <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                        Grade {existingWorksheet.grade} ({existingWorksheet.score_percentage.toFixed(0)}%)
+                        Grade {existingWorksheet.grade} ({existingWorksheet.score_percentage.toFixed(0)}% {existingWorksheet.total_questions - existingWorksheet.total_errors}/{existingWorksheet.total_questions})
                       </span>
                     )}
                   </p>
