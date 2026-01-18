@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/meappy/kumon-marker/compare/v0.5.0...v0.5.1) (2026-01-18)
+
+
+### Bug Fixes
+
+* run Google Drive scan in thread pool to prevent health check timeouts ([dc75597](https://github.com/meappy/kumon-marker/commit/dc75597ffd8eb7b3b2a1f128c64bad9ab1211e6f))
+
 # [0.5.0](https://github.com/meappy/kumon-marker/compare/v0.4.12...v0.5.0) (2026-01-18)
 
 
