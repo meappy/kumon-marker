@@ -190,7 +190,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                 </span>
               </div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                {formatDateTime(ws.timestamp, timezone)} · {ws.total_questions - ws.total_errors}/{ws.total_questions} ({ws.score_percentage.toFixed(0)}%) · {ws.pages}p
+                {formatDateTime(ws.timestamp, timezone)} · {ws.total_questions - ws.total_errors}/{ws.total_questions} ({ws.score_percentage.toFixed(0)}%) · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
               </div>
             </div>
             <div className="flex items-center gap-1">
