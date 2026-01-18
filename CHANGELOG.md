@@ -1,3 +1,10 @@
+## [0.4.11](https://github.com/meappy/kumon-marker/compare/v0.4.10...v0.4.11) (2026-01-18)
+
+
+### Bug Fixes
+
+* move grade badge to own line on mobile ([#11](https://github.com/meappy/kumon-marker/issues/11)) ([5d5eb87](https://github.com/meappy/kumon-marker/commit/5d5eb876128af93777dc329ca3336408b69f7c13))
+
 ## [0.4.10](https://github.com/meappy/kumon-marker/compare/v0.4.9...v0.4.10) (2026-01-18)
 
 
