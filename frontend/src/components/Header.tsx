@@ -59,16 +59,24 @@ export function Header({ user, onGDriveClick, onUploadsClick, onQueueClick, onSe
           {/* Uploads button */}
           <button
             onClick={onUploadsClick}
-            className="px-4 py-2 text-gray-700 rounded-lg transition-colors bg-gray-100 hover:bg-gray-200"
+            className="p-2 sm:px-4 sm:py-2 text-gray-700 rounded-lg transition-colors bg-gray-100 hover:bg-gray-200"
+            title="Uploads"
           >
-            Uploads
+            <svg className="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span className="hidden sm:inline">Uploads</span>
           </button>
           {/* Google Drive button */}
           <button
             onClick={onGDriveClick}
-            className="px-4 py-2 text-white rounded-lg transition-colors bg-blue-600 hover:bg-blue-700"
+            className="p-2 sm:px-4 sm:py-2 text-white rounded-lg transition-colors bg-blue-600 hover:bg-blue-700"
+            title="Google Drive"
           >
-            Google Drive
+            <svg className="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+            </svg>
+            <span className="hidden sm:inline">Google Drive</span>
           </button>
           <button
             onClick={onSettingsClick}
