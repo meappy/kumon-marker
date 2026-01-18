@@ -1,3 +1,10 @@
+## [0.4.10](https://github.com/meappy/kumon-marker/compare/v0.4.9...v0.4.10) (2026-01-18)
+
+
+### Bug Fixes
+
+* show score on separate line on mobile instead of tooltip ([#10](https://github.com/meappy/kumon-marker/issues/10)) ([c5feda2](https://github.com/meappy/kumon-marker/commit/c5feda2ebe5ae8e075db653e37c16b071d7ff14e))
+
 ## [0.4.9](https://github.com/meappy/kumon-marker/compare/v0.4.8...v0.4.9) (2026-01-18)
 
 
