@@ -56,7 +56,10 @@ function gradeColour(grade: string): string {
   }
 }
 
+type SortOption = 'date-desc' | 'date-asc' | 'student' | 'grade' | 'score-desc' | 'score-asc';
+
 export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone }: WorksheetListProps) {
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean;
     pdfUrl: string;
@@ -64,6 +67,26 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
     title: string;
     filename: string;
   }>({ isOpen: false, pdfUrl: '', downloadUrl: '', title: '', filename: '' });
+
+  // Sort worksheets based on selected option
+  const sortedWorksheets = [...worksheets].sort((a, b) => {
+    switch (sortBy) {
+      case 'date-desc':
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      case 'date-asc':
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      case 'student':
+        return (a.student_name || '').localeCompare(b.student_name || '');
+      case 'grade':
+        return a.grade.localeCompare(b.grade);
+      case 'score-desc':
+        return b.score_percentage - a.score_percentage;
+      case 'score-asc':
+        return a.score_percentage - b.score_percentage;
+      default:
+        return 0;
+    }
+  });
 
   const openMarkedPreview = (ws: WorksheetSummary) => {
     const displayName = formatSheetNameConsistent(ws.sheet_id);
@@ -87,6 +110,17 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
     });
   };
 
+  const openOriginalPreview = (ws: WorksheetSummary) => {
+    const displayName = formatSheetNameConsistent(ws.sheet_id);
+    setPreviewModal({
+      isOpen: true,
+      pdfUrl: api.getOriginalPdfUrl(ws.id),
+      downloadUrl: api.getOriginalPdfUrl(ws.id, true),
+      title: `Original: ${displayName}${ws.student_name ? ` (${ws.student_name})` : ''}`,
+      filename: `${displayName}-original.pdf`,
+    });
+  };
+
   if (worksheets.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -101,15 +135,29 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Marked Worksheets</h2>
-          <button
-            onClick={onDeleteAll}
-            disabled={deleting === 'all'}
-            className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50"
-          >
-            {deleting === 'all' ? 'Deleting...' : 'Delete All'}
-          </button>
+          <div className="flex items-center gap-3">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="date-desc">Newest first</option>
+              <option value="date-asc">Oldest first</option>
+              <option value="student">By student</option>
+              <option value="grade">By grade</option>
+              <option value="score-desc">Highest score</option>
+              <option value="score-asc">Lowest score</option>
+            </select>
+            <button
+              onClick={onDeleteAll}
+              disabled={deleting === 'all'}
+              className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50"
+            >
+              {deleting === 'all' ? 'Deleting...' : 'Delete All'}
+            </button>
+          </div>
         </div>
-        {worksheets.map((ws) => (
+        {sortedWorksheets.map((ws) => (
         <div
           key={ws.id}
           className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between"
@@ -141,6 +189,12 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                 {processing === ws.id ? 'Processing...' : 'Process'}
               </button>
             )}
+            <button
+              onClick={() => openOriginalPreview(ws)}
+              className="px-3 py-1.5 bg-gray-50 text-gray-600 text-sm rounded hover:bg-gray-100 border border-gray-200"
+            >
+              Original
+            </button>
             {ws.has_marked_pdf && (
               <button
                 onClick={() => openMarkedPreview(ws)}
