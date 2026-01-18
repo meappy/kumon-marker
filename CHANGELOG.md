@@ -1,3 +1,10 @@
+## [0.4.12](https://github.com/meappy/kumon-marker/compare/v0.4.11...v0.4.12) (2026-01-18)
+
+
+### Bug Fixes
+
+* improve error handling for Google Drive API responses ([ead4e5c](https://github.com/meappy/kumon-marker/commit/ead4e5cd7eddcfede22714ac03502858cd6186b3))
+
 ## [0.4.11](https://github.com/meappy/kumon-marker/compare/v0.4.10...v0.4.11) (2026-01-18)
 
 
