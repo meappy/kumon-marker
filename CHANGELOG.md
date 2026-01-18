@@ -1,3 +1,10 @@
+## [0.4.4](https://github.com/meappy/kumon-marker/compare/v0.4.3...v0.4.4) (2026-01-18)
+
+
+### Bug Fixes
+
+* add HMAC-SHA256 signature for Argo CD webhook ([#3](https://github.com/meappy/kumon-marker/issues/3)) ([21e8831](https://github.com/meappy/kumon-marker/commit/21e88311b4478ba11a7bcb9f71e0766ba0f0e8bb))
+
 ## [0.4.3](https://github.com/meappy/kumon-marker/compare/v0.4.2...v0.4.3) (2026-01-18)
 
 
