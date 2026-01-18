@@ -533,6 +533,27 @@ async def list_uploaded_files(user: User = Depends(get_current_user)):
     return uploaded_files
 
 
+@router.get("/uploads/{file_id}")
+async def download_uploaded_file(
+    file_id: str,
+    download: bool = False,
+    user: User = Depends(get_current_user),
+):
+    """Download an uploaded file (original PDF)."""
+    data_dir = get_data_dir(user)
+    pdf_path = data_dir / "scans" / f"{file_id}.pdf"
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{file_id}.pdf",
+        content_disposition_type="attachment" if download else "inline",
+    )
+
+
 @router.delete("/uploads/{file_id}")
 async def delete_uploaded_file(file_id: str, user: User = Depends(get_current_user)):
     """Delete an uploaded file (but keep any processed results)."""

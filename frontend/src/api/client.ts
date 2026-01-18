@@ -300,4 +300,8 @@ export const api = {
     });
     return handleResponse(response);
   },
+
+  getOriginalPdfUrl(id: string, download: boolean = false): string {
+    return `${API_BASE}/uploads/${id}${download ? '?download=true' : ''}`;
+  },
 };
