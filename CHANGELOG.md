@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/meappy/kumon-marker/compare/v0.4.0...v0.4.1) (2026-01-18)
+
+
+### Bug Fixes
+
+* improve scanned PDF validation with responsive UI ([#1](https://github.com/meappy/kumon-marker/issues/1)) ([02a2340](https://github.com/meappy/kumon-marker/commit/02a2340019c7ab9a3ff812c111bf421f1a187433))
+
 # [0.4.0](https://github.com/meappy/kumon-marker/compare/v0.3.0...v0.4.0) (2026-01-17)
 
 
