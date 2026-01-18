@@ -125,8 +125,8 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
     setError(null);
     try {
       const response = await api.listGDriveFiles(refresh);
-      setFiles(response.files);
-      setScannedAt(response.scanned_at);
+      setFiles(response.files || []);
+      setScannedAt(response.scanned_at || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch files');
     } finally {
