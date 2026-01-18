@@ -152,6 +152,19 @@ jobs:
           # Force push feature branch as dev (no merge conflicts)
           git push origin HEAD:dev --force
 
+      - name: Trigger Argo CD sync
+        env:
+          ARGOCD_WEBHOOK_SECRET: ${{ secrets.ARGOCD_WEBHOOK_SECRET }}
+        run: |
+          PAYLOAD='{"ref": "refs/heads/dev", "repository": {"html_url": "https://github.com/meappy/kumon-marker", "clone_url": "https://github.com/meappy/kumon-marker.git"}}'
+          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$ARGOCD_WEBHOOK_SECRET" | sed 's/^.* //')
+          curl -X POST https://argocd.meappy.me/api/webhook \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
+            -d "$PAYLOAD" \
+            --fail-with-body || echo "Argo CD webhook failed (non-critical)"
+
       - name: Print deployment info
         run: |
           echo "=========================================="
@@ -160,6 +173,4 @@ jobs:
           echo ""
           echo "Branch: ${{ steps.branch.outputs.name }} → merged to dev"
           echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.branch.outputs.tag }}"
-          echo ""
-          echo "Argo CD will automatically sync kumon-marker-dev"
           echo ""
