@@ -135,10 +135,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Get latest version from main branch
+          MAIN_VERSION=$(git show origin/main:VERSION 2>/dev/null || echo "0.4.0")
+          echo "Using version from main: $MAIN_VERSION"
+
+          # Update Chart.yaml with version from main
+          sed -i "s|^version: .*|version: $MAIN_VERSION|" helm/kumon-marker/Chart.yaml
+          sed -i "s|^appVersion: .*|appVersion: \"$MAIN_VERSION\"|" helm/kumon-marker/Chart.yaml
+
           # Update image tag in values-argocd.yaml
           sed -i 's|tag: ".*"|tag: "${{ steps.branch.outputs.tag }}"|' helm/kumon-marker/values-argocd.yaml
-          git add helm/kumon-marker/values-argocd.yaml
-          git commit -m "chore: set image tag to ${{ steps.branch.outputs.tag }} [skip ci]"
+
+          git add helm/kumon-marker/Chart.yaml helm/kumon-marker/values-argocd.yaml
+          git commit -m "chore: set image tag to ${{ steps.branch.outputs.tag }}, version $MAIN_VERSION [skip ci]"
 
           # Force push feature branch as dev (no merge conflicts)
           git push origin HEAD:dev --force
