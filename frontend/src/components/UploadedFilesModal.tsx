@@ -181,17 +181,24 @@ export function UploadedFilesModal({
                     {file.student_name && (
                       <span className="ml-2 text-gray-500 font-normal">({file.student_name})</span>
                     )}
+                    {/* Desktop: inline grade badge */}
                     {worksheet && !activeJob && (
-                      <>
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                          Grade {worksheet.grade} ({worksheet.score_percentage.toFixed(0)}%<span className="hidden sm:inline"> {worksheet.total_questions - worksheet.total_errors}/{worksheet.total_questions}</span>)
-                        </span>
-                        <span className="sm:hidden ml-2 text-xs text-gray-500">
-                          {worksheet.total_questions - worksheet.total_errors}/{worksheet.total_questions}
-                        </span>
-                      </>
+                      <span className="hidden sm:inline ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                        Grade {worksheet.grade} ({worksheet.score_percentage.toFixed(0)}% {worksheet.total_questions - worksheet.total_errors}/{worksheet.total_questions})
+                      </span>
                     )}
                   </p>
+                  {/* Mobile: grade badge on own line */}
+                  {worksheet && !activeJob && (
+                    <p className="sm:hidden text-sm mt-0.5">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                        Grade {worksheet.grade} ({worksheet.score_percentage.toFixed(0)}%)
+                      </span>
+                      <span className="ml-2 text-gray-500">
+                        {worksheet.total_questions - worksheet.total_errors}/{worksheet.total_questions}
+                      </span>
+                    </p>
+                  )}
                   <p className="text-sm text-gray-500">
                     {formatDateTime(file.uploaded_at, timezone)} · {formatFileSize(file.size)}
                   </p>

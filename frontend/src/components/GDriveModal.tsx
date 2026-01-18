@@ -279,17 +279,24 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
                     {file.student_name && (
                       <span className="ml-2 text-gray-500 font-normal">({file.student_name})</span>
                     )}
+                    {/* Desktop: inline grade badge */}
                     {existingWorksheet && !activeJob && (
-                      <>
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                          Grade {existingWorksheet.grade} ({existingWorksheet.score_percentage.toFixed(0)}%<span className="hidden sm:inline"> {existingWorksheet.total_questions - existingWorksheet.total_errors}/{existingWorksheet.total_questions}</span>)
-                        </span>
-                        <span className="sm:hidden ml-2 text-xs text-gray-500">
-                          {existingWorksheet.total_questions - existingWorksheet.total_errors}/{existingWorksheet.total_questions}
-                        </span>
-                      </>
+                      <span className="hidden sm:inline ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                        Grade {existingWorksheet.grade} ({existingWorksheet.score_percentage.toFixed(0)}% {existingWorksheet.total_questions - existingWorksheet.total_errors}/{existingWorksheet.total_questions})
+                      </span>
                     )}
                   </p>
+                  {/* Mobile: grade badge on own line */}
+                  {existingWorksheet && !activeJob && (
+                    <p className="sm:hidden text-sm mt-0.5">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
+                        Grade {existingWorksheet.grade} ({existingWorksheet.score_percentage.toFixed(0)}%)
+                      </span>
+                      <span className="ml-2 text-gray-500">
+                        {existingWorksheet.total_questions - existingWorksheet.total_errors}/{existingWorksheet.total_questions}
+                      </span>
+                    </p>
+                  )}
                   <p className="text-sm text-gray-500">
                     Scanned: {formatDateTime(file.created_time, timezone)}
                   </p>
