@@ -63,6 +63,7 @@ const ITEMS_PER_PAGE = 10;
 export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone }: WorksheetListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean;
     pdfUrl: string;
@@ -71,8 +72,17 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
     filename: string;
   }>({ isOpen: false, pdfUrl: '', downloadUrl: '', title: '', filename: '' });
 
+  // Filter worksheets based on search query
+  const filteredWorksheets = worksheets.filter((ws) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    const sheetName = formatSheetNameConsistent(ws.sheet_id).toLowerCase();
+    const studentName = (ws.student_name || '').toLowerCase();
+    return sheetName.includes(query) || studentName.includes(query);
+  });
+
   // Sort worksheets based on selected option
-  const sortedWorksheets = [...worksheets].sort((a, b) => {
+  const sortedWorksheets = [...filteredWorksheets].sort((a, b) => {
     switch (sortBy) {
       case 'date-desc':
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
@@ -96,9 +106,14 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedWorksheets = sortedWorksheets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Reset to page 1 when sort changes
+  // Reset to page 1 when sort or search changes
   const handleSortChange = (newSort: SortOption) => {
     setSortBy(newSort);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
     setCurrentPage(1);
   };
 
@@ -147,9 +162,26 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
   return (
     <>
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-gray-900">Marked Worksheets</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 sm:w-40"
+              />
+              <svg
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <select
               value={sortBy}
               onChange={(e) => handleSortChange(e.target.value as SortOption)}
@@ -171,6 +203,11 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
             </button>
           </div>
         </div>
+        {sortedWorksheets.length === 0 && searchQuery && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No worksheets match "{searchQuery}"</p>
+          </div>
+        )}
         {paginatedWorksheets.map((ws) => (
         <div
           key={ws.id}
@@ -186,11 +223,11 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                   )}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
-                  {ws.grade}
+                  {ws.grade} ({ws.score_percentage.toFixed(0)}%)
                 </span>
               </div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                {formatDateTime(ws.timestamp, timezone)} · {ws.total_questions - ws.total_errors}/{ws.total_questions} ({ws.score_percentage.toFixed(0)}%) · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
+                {formatDateTime(ws.timestamp, timezone)} · {ws.total_questions - ws.total_errors}/{ws.total_questions} · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
               </div>
             </div>
             <div className="flex items-center gap-1">
