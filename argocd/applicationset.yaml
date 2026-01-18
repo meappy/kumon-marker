@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kumon-marker
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - branch: main
+            branchSafe: main
+          - branch: dev
+            branchSafe: dev
+  template:
+    metadata:
+      name: 'kumon-marker-{{ .branchSafe }}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/meappy/kumon-marker.git
+        targetRevision: '{{ .branch }}'
+        path: helm/kumon-marker
+        helm:
+          releaseName: kumon-marker
+          valueFiles:
+            - values.yaml
+            - values-argocd.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kumon-marker
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

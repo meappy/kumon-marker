@@ -42,6 +42,17 @@ export interface GDriveFile {
   student_name: string | null;
 }
 
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  uploaded_at: string;
+  size: number;
+  is_kumon: boolean | null;
+  sheet_id: string | null;
+  student_name: string | null;
+  is_processed: boolean;
+}
+
 export interface GDriveFilesResponse {
   scanned_at: string;
   files: GDriveFile[];
@@ -89,12 +100,18 @@ export interface SettingValue {
   editable: boolean;
 }
 
+export interface VersionInfo {
+  app_version: string;
+  image_tag: string;
+}
+
 export interface AppSettings {
   anthropic_api_key: SettingValue;
   anthropic_model: SettingValue;
   gdrive_folder: SettingValue;
   timezone: SettingValue;
   google_configured: boolean;
+  version: VersionInfo;
 }
 
 export interface GoogleAuthStatus {
@@ -269,5 +286,22 @@ export const api = {
       method: 'DELETE',
     });
     return handleResponse(response);
+  },
+
+  // Uploaded files
+  async listUploadedFiles(): Promise<UploadedFile[]> {
+    const response = await fetch(`${API_BASE}/uploads`);
+    return handleResponse(response);
+  },
+
+  async deleteUploadedFile(id: string): Promise<{ message: string; id: string }> {
+    const response = await fetch(`${API_BASE}/uploads/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  getOriginalPdfUrl(id: string, download: boolean = false): string {
+    return `${API_BASE}/uploads/${id}${download ? '?download=true' : ''}`;
   },
 };

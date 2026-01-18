@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Uploader } from './components/Uploader';
 import { WorksheetList } from './components/WorksheetList';
 import { GDriveModal } from './components/GDriveModal';
+import { UploadedFilesModal } from './components/UploadedFilesModal';
 import { SettingsModal } from './components/SettingsModal';
 import { LoginPage } from './components/LoginPage';
 import { QueuePanel } from './components/QueuePanel';
@@ -21,6 +22,7 @@ function App() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showGDrive, setShowGDrive] = useState(false);
+  const [showUploads, setShowUploads] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [, setSyncing] = useState(false);
@@ -127,7 +129,7 @@ function App() {
     }
 
     // Set up interval polling when modal is open or there are active jobs
-    const shouldPoll = authStatus?.authenticated && (showGDrive || activeJobs.length > 0);
+    const shouldPoll = authStatus?.authenticated && (showGDrive || showUploads || activeJobs.length > 0);
 
     if (shouldPoll && !pollIntervalRef.current) {
       pollIntervalRef.current = setInterval(pollJobStatus, 2000);
@@ -142,7 +144,7 @@ function App() {
         pollIntervalRef.current = null;
       }
     };
-  }, [authStatus?.authenticated, showGDrive, activeJobs.length, pollJobStatus]);
+  }, [authStatus?.authenticated, showGDrive, showUploads, activeJobs.length, pollJobStatus]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -200,6 +202,19 @@ function App() {
     [loadWorksheets]
   );
 
+  const handleMarkUploaded = useCallback(
+    async (fileId: string, studentName: string | null) => {
+      setProcessing(fileId);
+      try {
+        await api.processWorksheet(fileId, studentName);
+        setTimeout(loadWorksheets, 2000);
+      } finally {
+        setProcessing(null);
+      }
+    },
+    [loadWorksheets]
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
       if (!confirm('Are you sure you want to delete this worksheet?')) return;
@@ -250,6 +265,7 @@ function App() {
       <Header
         user={authStatus.user}
         onGDriveClick={() => setShowGDrive(true)}
+        onUploadsClick={() => setShowUploads(true)}
         onQueueClick={() => setShowQueue(true)}
         onSettingsClick={() => setShowSettings(true)}
         onLogout={handleLogout}
@@ -303,6 +319,17 @@ function App() {
         isOpen={showGDrive}
         onClose={() => setShowGDrive(false)}
         onSync={handleGDriveSync}
+        worksheets={worksheets}
+        timezone={timezone}
+        activeJobs={activeJobs}
+        queueEnabled={queueEnabled}
+      />
+
+      <UploadedFilesModal
+        isOpen={showUploads}
+        onClose={() => setShowUploads(false)}
+        onMark={handleMarkUploaded}
+        onRefreshWorksheets={loadWorksheets}
         worksheets={worksheets}
         timezone={timezone}
         activeJobs={activeJobs}
