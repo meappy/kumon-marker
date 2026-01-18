@@ -4,55 +4,72 @@ This project uses **Semantic Release** for automated versioning and **Argo CD** 
 
 ## Architecture
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Feature Branch │────▶│   GitHub Actions │────▶│     GHCR        │
-│     Push        │     │   (CI Build)     │     │  branch-<name>  │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+All branches (main + feature) deploy to the **same** `kumon-marker` namespace with the **same** deployment name. Pushing to a branch automatically deploys it, replacing whatever was running before.
 
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   PR Merge to   │────▶│ Semantic Release │────▶│  GitHub Actions │────▶│     GHCR        │
-│      main       │     │  (Auto Version)  │     │  (Docker Build) │     │    v0.3.0       │
-└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
-                                │                                              │
-                                ▼                                              │
-                        ┌─────────────────┐                                    │
-                        │ values-argocd.yaml │                                   │
-                        │   tag: "0.3.0"   │                                   │
-                        └─────────────────┘                                    │
-                                │                                              │
-                                ▼                                              │
-                        ┌─────────────────┐     ┌─────────────────┐            │
-                        │    Argo CD      │────▶│   Kubernetes    │◀───────────┘
-                        │  (Auto Sync)    │     │   Deployment    │
-                        └─────────────────┘     └─────────────────┘
 ```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Push to any   │────▶│   GitHub Actions │────▶│     GHCR        │────▶│  ApplicationSet │
+│   branch        │     │   (CI Build)     │     │   image:tag     │     │  (Auto Deploy)  │
+└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                                               │
+                               ┌───────────────────────────────────────────────┘
+                               │
+                               ▼
+                       ┌─────────────────┐     ┌─────────────────┐
+                       │    Argo CD      │────▶│   Kubernetes    │
+                       │ kumon-marker-X  │     │  kumon-marker   │  (same deployment)
+                       └─────────────────┘     └─────────────────┘
+
+Branches:
+  main           → kumon-marker-main         → image: 0.3.0 (semantic release)
+  fix/bug        → kumon-marker-fix-bug      → image: branch-fix-bug
+  feat/feature   → kumon-marker-feat-feature → image: branch-feat-feature
+```
+
+**Key point:** All branches deploy to the same Kubernetes resources. The last branch pushed "wins".
 
 ## Workflow
 
-### 1. Feature Development (Branch Builds)
+### 1. Feature Development (Automatic Branch Deployments)
 
-When you push to any branch (except `main`):
+When you push to a branch matching `fix/*`, `feat/*`, or `feature/*`:
 
 ```bash
-git checkout -b feature/my-feature
+git checkout -b fix/scanned-pdf-validation
 # Make changes
-git commit -m "feat: add new feature"
-git push origin feature/my-feature
+git commit -m "fix: handle scanned PDFs without text layer"
+git push origin fix/scanned-pdf-validation
 ```
 
-**GitHub Actions (ci.yml):**
-- Runs linting (backend + frontend)
-- Builds Docker image
-- Pushes to GHCR as `ghcr.io/meappy/kumon-marker:branch-feature-my-feature`
+**What happens automatically:**
 
-**Testing branch builds:**
+1. **GitHub Actions (ci.yml):**
+   - Runs linting (backend + frontend)
+   - Builds Docker image
+   - Pushes to GHCR as `ghcr.io/meappy/kumon-marker:branch-fix-scanned-pdf-validation`
+   - Updates `values-argocd.yaml` in the branch with the new image tag
+   - Commits and pushes to the branch
+
+2. **Argo CD ApplicationSet:**
+   - Detects the new branch matching `fix/*` pattern
+   - Creates a new Application: `kumon-marker-fix-scanned-pdf-validation`
+   - Deploys to namespace: `kumon-marker-fix-scanned-pdf-validation`
+   - Auto-syncs whenever you push changes
+
+3. **When you delete the branch:**
+   - ApplicationSet automatically deletes the Application
+   - Kubernetes namespace is cleaned up
+
+**Check your branch deployment:**
 ```bash
-# Temporarily deploy branch image for testing
-helm upgrade kumon-marker ./helm/kumon-marker \
-  -f ./helm/kumon-marker/values-local.yaml \
-  --set image.tag=branch-feature-my-feature \
-  -n kumon-marker
+# List branch deployments
+kubectl get applications -n argocd | grep kumon-marker
+
+# Check specific branch
+kubectl get application -n argocd kumon-marker-fix-scanned-pdf-validation
+
+# View pods in branch namespace
+kubectl get pods -n kumon-marker-fix-scanned-pdf-validation
 ```
 
 ### 2. Release (Merge to main)
@@ -61,7 +78,7 @@ When you merge a PR to `main`:
 
 ```bash
 git checkout main
-git merge feature/my-feature
+git merge fix/scanned-pdf-validation
 git push origin main
 ```
 
@@ -84,7 +101,7 @@ git push origin main
    - Builds multi-arch image (amd64 + arm64)
    - Pushes to GHCR as `ghcr.io/meappy/kumon-marker:0.3.0` and `:latest`
 
-### 3. Automatic Deployment (Argo CD)
+### 3. Automatic Production Deployment (Argo CD)
 
 Argo CD watches the `main` branch and auto-syncs when `values-argocd.yaml` changes:
 
@@ -132,23 +149,49 @@ Semantic Release configuration - defines plugins and version update commands.
 ### `helm/kumon-marker/values-argocd.yaml`
 Production values for Argo CD. Contains `image.tag` which is auto-updated.
 
-### `argocd/application.yaml`
-Argo CD Application manifest - defines source repo, target namespace, sync policy.
+### `argocd/applicationset.yaml`
+Argo CD ApplicationSet that manages ALL deployments (main + feature branches). Creates an Application for each branch matching `main`, `fix/*`, `feat/*`, `feature/*`. All deployments use the same Helm release name (`kumon-marker`) so they deploy to the same resources.
 
 ### `argocd/repo-secret.yaml`
 GitHub credentials for Argo CD to access private repo (not committed to git).
+
+## Setup
+
+### Install ApplicationSet
+
+```bash
+# Apply the ApplicationSet (one-time setup)
+kubectl apply -f argocd/applicationset.yaml
+```
+
+### Create Repository Secret (for private repos)
+
+```bash
+# Create secret from template
+cp argocd/repo-secret.yaml.example argocd/repo-secret.yaml
+# Edit with your GitHub token
+kubectl apply -f argocd/repo-secret.yaml
+```
 
 ## Manual Operations
 
 ### Check Argo CD Status
 ```bash
+# Production
 kubectl get application -n argocd kumon-marker
+
+# All applications (including branch deployments)
+kubectl get applications -n argocd
 ```
 
 ### Force Sync
 ```bash
-kubectl delete application -n argocd kumon-marker
-kubectl apply -f argocd/application.yaml
+# Refresh the ApplicationSet
+kubectl apply -f argocd/applicationset.yaml
+
+# Or delete and recreate a specific application
+kubectl delete application -n argocd kumon-marker-main
+# ApplicationSet will automatically recreate it
 ```
 
 ### Access Argo CD UI
@@ -219,4 +262,16 @@ kubectl get deployment kumon-marker -n kumon-marker -o jsonpath='{.spec.template
 
 # Check Argo CD sync status
 kubectl get application -n argocd kumon-marker
+```
+
+### Branch deployment not created
+```bash
+# Check ApplicationSet status
+kubectl get applicationset -n argocd kumon-marker
+
+# Check if branch matches pattern (main, fix/*, feat/*, feature/*)
+# Other branch names won't get auto-deployed
+
+# View ApplicationSet events
+kubectl describe applicationset -n argocd kumon-marker
 ```

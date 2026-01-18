@@ -44,6 +44,65 @@ def pdf_page_to_image(pdf_path: Path, page_num: int) -> bytes:
     return image_bytes
 
 
+def run_claude_cli(prompt: str, image_bytes: bytes, model: str | None = None) -> str | None:
+    """
+    Shared function to call Claude CLI with an image.
+    Used by both validation (checker.py) and marking (ocr.py).
+    Returns the raw output text, or None on error.
+    """
+    if model is None:
+        model = get_effective_setting("claude_model", "claude-sonnet-4-20250514")
+
+    temp_image_path = None
+    try:
+        # Save image to temp file
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+            f.write(image_bytes)
+            temp_image_path = f.name
+
+        # Claude CLI uses the Read tool internally
+        cli_prompt = f"Read the image at {temp_image_path} and then: {prompt}"
+
+        # Call Claude Code CLI with memory limits
+        env = os.environ.copy()
+        env['NODE_OPTIONS'] = '--max-old-space-size=512'
+
+        print(f"Running Claude CLI with model {model}...", flush=True)
+        result = subprocess.run(
+            [
+                'claude',
+                '-p', cli_prompt,
+                '--output-format', 'text',
+                '--max-turns', '3',
+                '--model', model,
+                '--allowedTools', 'Read',
+                '--no-chrome',
+                '--no-session-persistence',
+                '--disable-slash-commands',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env=env,
+        )
+
+        if result.returncode != 0:
+            print(f"Claude CLI error: {result.stderr}", flush=True)
+            return None
+
+        return result.stdout.strip()
+
+    except subprocess.TimeoutExpired:
+        print("Claude CLI timeout", flush=True)
+        return None
+    except Exception as e:
+        print(f"Claude CLI error: {e}", flush=True)
+        return None
+    finally:
+        if temp_image_path:
+            Path(temp_image_path).unlink(missing_ok=True)
+
+
 def get_default_prompt(sheet_id: str, page_num: int, questions_per_page: int) -> str:
     """Get the default prompt for worksheet analysis."""
     # Note: questions_per_page is now just a hint, model should count actual questions
@@ -356,56 +415,11 @@ def analyse_page_with_cli(
     model: str = "claude-sonnet-4-20250514",
 ) -> PageResult:
     """Analyse a single worksheet page using Claude Code CLI."""
-
     prompt = get_analysis_prompt(sheet_id, page_num)
-    temp_image_path = None
 
-    try:
-        # Save image to temp file
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
-            f.write(image_bytes)
-            temp_image_path = f.name
-
-        # Claude CLI uses the Read tool internally, so we reference the file in the prompt
-        cli_prompt = f"Read the image at {temp_image_path} and then: {prompt}"
-
-        # Call Claude Code CLI with memory limits
-        env = os.environ.copy()
-        env['NODE_OPTIONS'] = '--max-old-space-size=512'
-
-        result = subprocess.run(
-            [
-                'claude',
-                '-p', cli_prompt,
-                '--output-format', 'text',
-                '--max-turns', '3',
-                '--model', model,
-                '--allowedTools', 'Read',
-                '--no-chrome',
-                '--no-session-persistence',
-                '--disable-slash-commands',
-            ],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env=env,
-        )
-
-        if result.returncode != 0:
-            print(f"Claude CLI error on page {page_num}: {result.stderr}")
-            raise Exception(result.stderr)
-
-        output = result.stdout.strip()
+    output = run_claude_cli(prompt, image_bytes, model)
+    if output:
         return parse_analysis_response(output, sheet_id, page_num)
-
-    except subprocess.TimeoutExpired:
-        print(f"Claude CLI timeout on page {page_num}")
-    except Exception as e:
-        print(f"CLI error on page {page_num}: {e}")
-    finally:
-        # Clean up temp file
-        if temp_image_path:
-            Path(temp_image_path).unlink(missing_ok=True)
 
     return PageResult(
         sheet_id=sheet_id,

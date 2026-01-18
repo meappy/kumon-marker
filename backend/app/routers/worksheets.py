@@ -14,6 +14,7 @@ from app.models.schemas import (
     GDriveFile,
     PageResult,
     HealthResponse,
+    UploadedFile,
 )
 from app.services.checker import validate_kumon_worksheet, validate_kumon_from_bytes, extract_sheet_info
 from app.services.ocr import analyse_worksheet
@@ -481,3 +482,86 @@ async def delete_all_worksheets(user: User = Depends(get_current_user)):
                     deleted_count += 1
 
     return {"message": "All worksheets deleted", "files_deleted": deleted_count}
+
+
+@router.get("/uploads", response_model=list[UploadedFile])
+async def list_uploaded_files(user: User = Depends(get_current_user)):
+    """List all uploaded files in the scans directory."""
+    data_dir = get_data_dir(user)
+    scans_dir = data_dir / "scans"
+    results_dir = data_dir / "results"
+
+    if not scans_dir.exists():
+        return []
+
+    uploaded_files = []
+    for pdf_path in sorted(scans_dir.glob("*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True):
+        stat = pdf_path.stat()
+        file_id = pdf_path.stem
+
+        # Check if this file has been processed (has results)
+        is_processed = (results_dir / f"{file_id}.json").exists()
+
+        # Get validation info if available
+        sheet_id = None
+        student_name = None
+        is_kumon = None
+
+        # Try to get cached validation info from results
+        if is_processed:
+            try:
+                result_data = json.loads((results_dir / f"{file_id}.json").read_text())
+                student_name = result_data.get("student_name")
+                # Get sheet ID from first result
+                if result_data.get("results"):
+                    sheet_id = result_data["results"][0].get("sheet_id")
+                is_kumon = True
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        uploaded_files.append(UploadedFile(
+            id=file_id,
+            filename=pdf_path.name,
+            uploaded_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+            size=stat.st_size,
+            is_kumon=is_kumon,
+            sheet_id=sheet_id,
+            student_name=student_name,
+            is_processed=is_processed,
+        ))
+
+    return uploaded_files
+
+
+@router.get("/uploads/{file_id}")
+async def download_uploaded_file(
+    file_id: str,
+    download: bool = False,
+    user: User = Depends(get_current_user),
+):
+    """Download an uploaded file (original PDF)."""
+    data_dir = get_data_dir(user)
+    pdf_path = data_dir / "scans" / f"{file_id}.pdf"
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=f"{file_id}.pdf",
+        content_disposition_type="attachment" if download else "inline",
+    )
+
+
+@router.delete("/uploads/{file_id}")
+async def delete_uploaded_file(file_id: str, user: User = Depends(get_current_user)):
+    """Delete an uploaded file (but keep any processed results)."""
+    data_dir = get_data_dir(user)
+    pdf_path = data_dir / "scans" / f"{file_id}.pdf"
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    pdf_path.unlink()
+    return {"message": "File deleted", "id": file_id}
