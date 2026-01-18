@@ -1,3 +1,10 @@
+## [0.4.7](https://github.com/meappy/kumon-marker/compare/v0.4.6...v0.4.7) (2026-01-18)
+
+
+### Bug Fixes
+
+* prevent CI/Release workflow race condition ([#6](https://github.com/meappy/kumon-marker/issues/6)) ([9d9e243](https://github.com/meappy/kumon-marker/commit/9d9e2433f530933759768e568ff35f78658f62f0))
+
 ## [0.4.6](https://github.com/meappy/kumon-marker/compare/v0.4.5...v0.4.6) (2026-01-18)
 
 
