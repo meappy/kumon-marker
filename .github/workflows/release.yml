@@ -62,8 +62,8 @@ jobs:
       issues: write
       pull-requests: write
     outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      new_release_published: ${{ steps.check.outputs.new_release_published }}
+      new_release_version: ${{ steps.check.outputs.new_release_version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -96,12 +96,29 @@ jobs:
             @semantic-release/git \
             @semantic-release/github
 
+      - name: Get version before release
+        id: before
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
       - name: Run semantic-release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Check if new release was published
+        id: check
         run: |
-          npx semantic-release
+          git pull origin main
+          NEW_VERSION=$(cat VERSION)
+          if [ "${{ steps.before.outputs.version }}" != "$NEW_VERSION" ]; then
+            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            echo "new_release_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "New release published: $NEW_VERSION"
+          else
+            echo "new_release_published=false" >> $GITHUB_OUTPUT
+            echo "No new release"
+          fi
 
   build-and-push:
     name: Build and Push Docker Image
