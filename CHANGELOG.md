@@ -1,3 +1,10 @@
+## [0.4.9](https://github.com/meappy/kumon-marker/compare/v0.4.8...v0.4.9) (2026-01-18)
+
+
+### Bug Fixes
+
+* responsive grade badge - hide score on mobile ([#9](https://github.com/meappy/kumon-marker/issues/9)) ([89f1355](https://github.com/meappy/kumon-marker/commit/89f135514c66600de9d5510ce4b50c7c981a5f40))
+
 ## [0.4.8](https://github.com/meappy/kumon-marker/compare/v0.4.7...v0.4.8) (2026-01-18)
 
 
