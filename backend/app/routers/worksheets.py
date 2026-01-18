@@ -328,6 +328,45 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
+def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
+    """Synchronous helper to scan Google Drive files.
+
+    Run in a thread pool to avoid blocking the event loop.
+    """
+    service = get_gdrive_service(user)
+    folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
+    files = service.list_pdfs(folder)
+
+    # Validate each file to check if it's a Kumon worksheet
+    validated_files = []
+    for f in files:
+        try:
+            pdf_bytes = service.download_file_bytes(f.id)
+            validation = validate_kumon_from_bytes(pdf_bytes)
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=validation.is_kumon,
+                sheet_id=validation.sheet_id,
+                student_name=validation.student_name,
+            ))
+        except Exception as e:
+            print(f"Error validating {f.name}: {e}")
+            # Include file but mark as unknown
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=None,
+            ))
+
+    scanned_at = datetime.now().isoformat()
+    return validated_files, scanned_at
+
+
 @router.get("/gdrive/files")
 async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_current_user)):
     """List PDF files in Google Drive folder for the current user."""
@@ -346,39 +385,13 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
         if not token_path.exists():
             raise HTTPException(status_code=400, detail="Google Drive not connected")
 
-        # Scan Google Drive
-        service = get_gdrive_service(user)
-        folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
-        files = service.list_pdfs(folder)
-
-        # Validate each file to check if it's a Kumon worksheet
-        validated_files = []
-        for f in files:
-            try:
-                pdf_bytes = service.download_file_bytes(f.id)
-                validation = validate_kumon_from_bytes(pdf_bytes)
-                validated_files.append(GDriveFile(
-                    id=f.id,
-                    name=f.name,
-                    created_time=f.created_time,
-                    size=f.size,
-                    is_kumon=validation.is_kumon,
-                    sheet_id=validation.sheet_id,
-                    student_name=validation.student_name,
-                ))
-            except Exception as e:
-                print(f"Error validating {f.name}: {e}")
-                # Include file but mark as unknown
-                validated_files.append(GDriveFile(
-                    id=f.id,
-                    name=f.name,
-                    created_time=f.created_time,
-                    size=f.size,
-                    is_kumon=None,
-                ))
+        # Run blocking operations in thread pool to avoid blocking the event loop
+        # This prevents health check timeouts during long scans
+        validated_files, scanned_at = await asyncio.to_thread(
+            _scan_gdrive_files_sync, user
+        )
 
         # Save to cache
-        scanned_at = datetime.now().isoformat()
         save_gdrive_cache(user, validated_files, scanned_at)
 
         return {
