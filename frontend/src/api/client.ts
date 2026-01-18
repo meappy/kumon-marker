@@ -124,7 +124,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
     throw new Error(error.detail || `HTTP ${response.status}`);
   }
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    throw new Error('Invalid response from server');
+  }
 }
 
 export const api = {
