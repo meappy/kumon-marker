@@ -195,32 +195,34 @@ export function UploadedFilesModal({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-1 ml-2">
                   {/* Status / Action buttons */}
                   {queueEnabled && activeJob ? (
                     jobCompleted ? (
-                      <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg flex items-center gap-1 text-sm">
+                      <span className="p-1.5 bg-green-100 text-green-700 rounded" title="Completed">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Done
                       </span>
                     ) : jobFailed ? (
                       <button
                         onClick={() => handleMark(file)}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
+                        className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                        title="Retry"
                       >
-                        Retry
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
                       </button>
                     ) : jobProcessing ? (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded">
                         <div className="w-12 h-2 bg-orange-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-orange-500 transition-all duration-300"
                             style={{ width: `${activeJob.progress}%` }}
                           />
                         </div>
-                        <span className="text-sm">{activeJob.progress}%</span>
+                        <span className="text-xs">{activeJob.progress}%</span>
                         <button
                           onClick={() => handleCancelJob(activeJob.id)}
                           className="text-orange-600 hover:text-orange-800"
@@ -232,8 +234,10 @@ export function UploadedFilesModal({
                         </button>
                       </div>
                     ) : jobQueued ? (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg">
-                        <span className="animate-pulse text-sm">Queued</span>
+                      <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                        <svg className="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <button
                           onClick={() => handleCancelJob(activeJob.id)}
                           className="text-gray-500 hover:text-gray-700"
@@ -248,16 +252,23 @@ export function UploadedFilesModal({
                   ) : worksheet ? (
                     <button
                       onClick={() => handleMark(file)}
-                      className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                      className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                      title="Re-mark"
                     >
-                      Re-mark
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
                     </button>
                   ) : (
                     <button
                       onClick={() => handleMark(file)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      className="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                      title="Mark"
                     >
-                      Mark
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </button>
                   )}
 
