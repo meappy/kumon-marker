@@ -1,3 +1,10 @@
+## [0.4.2](https://github.com/meappy/kumon-marker/compare/v0.4.1...v0.4.2) (2026-01-18)
+
+
+### Bug Fixes
+
+* capture semantic-release output for Docker build trigger ([e6ff88c](https://github.com/meappy/kumon-marker/commit/e6ff88cd217801a4e0b0965db30812fa636f3ad1))
+
 ## [0.4.1](https://github.com/meappy/kumon-marker/compare/v0.4.0...v0.4.1) (2026-01-18)
 
 
