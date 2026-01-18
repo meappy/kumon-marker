@@ -183,7 +183,7 @@ export function UploadedFilesModal({
                     )}
                     {worksheet && !activeJob && (
                       <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">
-                        Grade {worksheet.grade} ({worksheet.score_percentage.toFixed(0)}%)
+                        Grade {worksheet.grade} ({worksheet.score_percentage.toFixed(0)}% {worksheet.total_questions - worksheet.total_errors}/{worksheet.total_questions})
                       </span>
                     )}
                   </p>
