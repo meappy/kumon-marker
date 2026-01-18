@@ -223,11 +223,11 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                   )}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
-                  {ws.grade} ({ws.score_percentage.toFixed(0)}%)
+                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}% {ws.total_questions - ws.total_errors}/{ws.total_questions})
                 </span>
               </div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                {formatDateTime(ws.timestamp, timezone)} · {ws.total_questions - ws.total_errors}/{ws.total_questions} · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
+                {formatDateTime(ws.timestamp, timezone)} · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
               </div>
             </div>
             <div className="flex items-center gap-1">
