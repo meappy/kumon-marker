@@ -143,15 +143,18 @@ def _vision_validate_cli(image_bytes: bytes, prompt: str) -> dict | None:
     import subprocess
     import tempfile
     import sys
+    from app.core.config import get_effective_setting
+
+    model = get_effective_setting("claude_model", "claude-sonnet-4-20250514")
 
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
         f.write(image_bytes)
         image_path = f.name
 
     try:
-        print(f"Running claude CLI validation on {image_path}...", flush=True)
+        print(f"Running claude CLI validation on {image_path} with model {model}...", flush=True)
         result = subprocess.run(
-            ["claude", "-p", prompt, image_path],
+            ["claude", "-p", prompt, "--model", model, image_path],
             capture_output=True,
             text=True,
             timeout=60,
