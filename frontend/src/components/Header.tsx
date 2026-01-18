@@ -3,13 +3,14 @@ import type { User, Job } from '../api/client';
 interface HeaderProps {
   user: User | null;
   onGDriveClick: () => void;
+  onUploadsClick: () => void;
   onQueueClick: () => void;
   onSettingsClick: () => void;
   onLogout: () => void;
   activeJobs?: Job[];
 }
 
-export function Header({ user, onGDriveClick, onQueueClick, onSettingsClick, onLogout, activeJobs = [] }: HeaderProps) {
+export function Header({ user, onGDriveClick, onUploadsClick, onQueueClick, onSettingsClick, onLogout, activeJobs = [] }: HeaderProps) {
   // Calculate queue status
   const queuedCount = activeJobs.filter((j) => j.status === 'queued').length;
   const processingJobs = activeJobs.filter((j) => j.status === 'processing');
@@ -55,6 +56,13 @@ export function Header({ user, onGDriveClick, onQueueClick, onSettingsClick, onL
               </span>
             </button>
           )}
+          {/* Uploads button */}
+          <button
+            onClick={onUploadsClick}
+            className="px-4 py-2 text-gray-700 rounded-lg transition-colors bg-gray-100 hover:bg-gray-200"
+          >
+            Uploads
+          </button>
           {/* Google Drive button */}
           <button
             onClick={onGDriveClick}

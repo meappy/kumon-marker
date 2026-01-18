@@ -42,6 +42,17 @@ export interface GDriveFile {
   student_name: string | null;
 }
 
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  uploaded_at: string;
+  size: number;
+  is_kumon: boolean | null;
+  sheet_id: string | null;
+  student_name: string | null;
+  is_processed: boolean;
+}
+
 export interface GDriveFilesResponse {
   scanned_at: string;
   files: GDriveFile[];
@@ -272,6 +283,19 @@ export const api = {
 
   async deleteAllWorksheets(): Promise<{ message: string; files_deleted: number }> {
     const response = await fetch(`${API_BASE}/worksheets`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  // Uploaded files
+  async listUploadedFiles(): Promise<UploadedFile[]> {
+    const response = await fetch(`${API_BASE}/uploads`);
+    return handleResponse(response);
+  },
+
+  async deleteUploadedFile(id: string): Promise<{ message: string; id: string }> {
+    const response = await fetch(`${API_BASE}/uploads/${id}`, {
       method: 'DELETE',
     });
     return handleResponse(response);

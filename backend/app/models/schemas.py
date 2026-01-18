@@ -106,3 +106,15 @@ class ConfigUpdate(BaseModel):
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str = "healthy"
+
+
+class UploadedFile(BaseModel):
+    """An uploaded file in the scans directory."""
+    id: str = Field(description="File ID (stem without extension)")
+    filename: str = Field(description="Original filename")
+    uploaded_at: datetime = Field(description="When the file was uploaded")
+    size: int = Field(description="File size in bytes")
+    is_kumon: bool | None = None
+    sheet_id: str | None = None
+    student_name: str | None = None
+    is_processed: bool = Field(default=False, description="Whether this file has been marked")
