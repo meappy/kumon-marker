@@ -1,3 +1,10 @@
+## [0.4.5](https://github.com/meappy/kumon-marker/compare/v0.4.4...v0.4.5) (2026-01-18)
+
+
+### Bug Fixes
+
+* add Argo CD webhook to CI workflow for dev deployments ([#4](https://github.com/meappy/kumon-marker/issues/4)) ([a233e5d](https://github.com/meappy/kumon-marker/commit/a233e5d715c4f86c0c29fe8afdd0c6d96b67ed43))
+
 ## [0.4.4](https://github.com/meappy/kumon-marker/compare/v0.4.3...v0.4.4) (2026-01-18)
 
 
