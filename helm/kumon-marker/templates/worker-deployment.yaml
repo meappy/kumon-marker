@@ -18,6 +18,8 @@ spec:
         {{- include "kumon-marker.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: worker
     spec:
+      # Allow up to 15 minutes for graceful shutdown to let current job complete
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds | default 900 }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

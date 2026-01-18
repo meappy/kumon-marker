@@ -134,6 +134,8 @@ postgresql:
 worker:
   enabled: true
   replicas: 1
+  # Allow time for current job to complete during shutdown (default: 15 minutes)
+  terminationGracePeriodSeconds: 900
   resources:
     limits:
       cpu: 500m

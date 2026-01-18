@@ -17,15 +17,20 @@ from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
 
 
-# Global flag for graceful shutdown
+# Global flags for graceful shutdown
 _shutdown = False
+_processing = False  # Track if a job is currently being processed
 
 
 def signal_handler(signum, frame):
     """Handle shutdown signals."""
     global _shutdown
-    print(f"Received signal {signum}, shutting down...")
+    print(f"Received signal {signum}, initiating graceful shutdown...")
     _shutdown = True
+    if _processing:
+        print("Waiting for current job to complete before shutting down...")
+    else:
+        print("No job in progress, shutting down immediately.")
 
 
 def process_worksheet(
@@ -134,10 +139,11 @@ def process_worksheet(
 
 def on_message(channel, method, properties, body):
     """Handle incoming messages from the queue."""
-    global _shutdown
+    global _shutdown, _processing
 
     if _shutdown:
-        # Reject message and re-queue it
+        # Reject message and re-queue it so another worker can process it
+        print("Shutdown in progress, re-queuing message...")
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
         return
 
@@ -154,15 +160,21 @@ def on_message(channel, method, properties, body):
             channel.basic_ack(delivery_tag=method.delivery_tag)
             return
 
-        process_worksheet(job_id, worksheet_id, user_id, student_name)
+        # Mark as processing to prevent premature shutdown
+        _processing = True
         try:
-            channel.basic_ack(delivery_tag=method.delivery_tag)
-        except Exception as ack_error:
-            # Job completed but ack failed (connection lost) - this is OK
-            print(f"Warning: Job completed but ack failed: {ack_error}")
+            process_worksheet(job_id, worksheet_id, user_id, student_name)
+            try:
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+            except Exception as ack_error:
+                # Job completed but ack failed (connection lost) - this is OK
+                print(f"Warning: Job completed but ack failed: {ack_error}")
+        finally:
+            _processing = False
 
     except Exception as e:
         print(f"Error processing message: {e}")
+        _processing = False
         # Acknowledge to prevent infinite retries for bad messages
         try:
             channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -210,11 +222,26 @@ def main():
     print(f"Worker started, waiting for messages on queue '{QUEUE_NAME}'...")
 
     try:
-        while not _shutdown:
+        while not _shutdown or _processing:
             # Process events with a timeout to allow checking shutdown flag
+            # Continue running if processing a job, even after shutdown signal
             connection.process_data_events(time_limit=1)
+            if _shutdown and _processing:
+                # Still processing, keep the connection alive
+                pass
+            elif _shutdown and not _processing:
+                # Shutdown requested and no job in progress
+                break
     except KeyboardInterrupt:
         print("Worker interrupted")
+        # Wait for current job to complete if interrupted
+        if _processing:
+            print("Waiting for current job to complete...")
+            while _processing:
+                try:
+                    connection.process_data_events(time_limit=1)
+                except Exception:
+                    break
     finally:
         print("Closing connection...")
         try:
@@ -223,7 +250,7 @@ def main():
         except Exception:
             pass
 
-    print("Worker shut down")
+    print("Worker shut down gracefully")
 
 
 if __name__ == "__main__":
