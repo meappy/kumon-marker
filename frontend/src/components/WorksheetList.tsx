@@ -222,10 +222,17 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                     <span className="ml-1 text-gray-500 font-normal">({ws.student_name})</span>
                   )}
                 </span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
-                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}%<span className="hidden sm:inline"> {ws.total_questions - ws.total_errors}/{ws.total_questions}</span>)
+                {/* Desktop: full grade badge inline */}
+                <span className={`hidden sm:inline px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
+                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}% {ws.total_questions - ws.total_errors}/{ws.total_questions})
                 </span>
-                <span className="sm:hidden text-xs text-gray-500">
+              </div>
+              {/* Mobile: grade badge on own line */}
+              <div className="sm:hidden flex items-center gap-2 mt-1">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
+                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}%)
+                </span>
+                <span className="text-xs text-gray-500">
                   {ws.total_questions - ws.total_errors}/{ws.total_questions}
                 </span>
               </div>
