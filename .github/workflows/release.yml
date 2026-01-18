@@ -130,6 +130,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      actions: read
 
     steps:
       - name: Checkout
@@ -178,6 +179,33 @@ jobs:
             VERSION=${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Wait for CI workflow to complete
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking for running CI workflows..."
+          MAX_WAIT=300  # 5 minutes max
+          WAIT_INTERVAL=10
+          WAITED=0
+
+          while [ $WAITED -lt $MAX_WAIT ]; do
+            # Check for in-progress CI workflow runs
+            RUNNING=$(gh run list --workflow=ci.yml --status=in_progress --json databaseId --jq 'length')
+
+            if [ "$RUNNING" = "0" ]; then
+              echo "No CI workflows running, proceeding with deployment"
+              break
+            fi
+
+            echo "CI workflow in progress, waiting ${WAIT_INTERVAL}s... (${WAITED}s/${MAX_WAIT}s)"
+            sleep $WAIT_INTERVAL
+            WAITED=$((WAITED + WAIT_INTERVAL))
+          done
+
+          if [ $WAITED -ge $MAX_WAIT ]; then
+            echo "Warning: Timed out waiting for CI workflow, proceeding anyway"
+          fi
 
       - name: Trigger Argo CD sync
         env:
