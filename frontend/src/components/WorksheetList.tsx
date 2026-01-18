@@ -222,11 +222,11 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                     <span className="ml-1 text-gray-500 font-normal">({ws.student_name})</span>
                   )}
                 </span>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}
-                  title={`${ws.total_questions - ws.total_errors}/${ws.total_questions}`}
-                >
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
                   Grade {ws.grade} ({ws.score_percentage.toFixed(0)}%<span className="hidden sm:inline"> {ws.total_questions - ws.total_errors}/{ws.total_questions}</span>)
+                </span>
+                <span className="sm:hidden text-xs text-gray-500">
+                  {ws.total_questions - ws.total_errors}/{ws.total_questions}
                 </span>
               </div>
               <div className="text-xs sm:text-sm text-gray-500 mt-1">
