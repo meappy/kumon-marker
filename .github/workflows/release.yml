@@ -178,3 +178,10 @@ jobs:
             VERSION=${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trigger Argo CD sync
+        run: |
+          curl -X POST https://argocd.example.com/api/webhook \
+            -H "Content-Type: application/json" \
+            -d '{"ref": "refs/heads/main", "repository": {"clone_url": "https://github.com/meappy/kumon-marker.git"}}' \
+            --fail-with-body || echo "Argo CD webhook failed (non-critical)"
