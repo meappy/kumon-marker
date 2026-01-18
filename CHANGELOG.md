@@ -1,3 +1,10 @@
+## [0.4.6](https://github.com/meappy/kumon-marker/compare/v0.4.5...v0.4.6) (2026-01-18)
+
+
+### Bug Fixes
+
+* UI consistency and search filter ([#5](https://github.com/meappy/kumon-marker/issues/5)) ([8a1a2b6](https://github.com/meappy/kumon-marker/commit/8a1a2b6e221a30551fdb79bc02b9dc89f4e743ad))
+
 ## [0.4.5](https://github.com/meappy/kumon-marker/compare/v0.4.4...v0.4.5) (2026-01-18)
 
 
