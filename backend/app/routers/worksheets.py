@@ -398,6 +398,8 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
             "scanned_at": scanned_at,
             "files": [f.model_dump() for f in validated_files],
         }
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -421,6 +423,8 @@ async def sync_from_gdrive(file_id: str, filename: str, user: User = Depends(get
         service.download_file(file_id, dest_path)
         return {"message": "File downloaded", "filename": filename, "id": dest_path.stem}
 
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
