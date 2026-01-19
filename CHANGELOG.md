@@ -1,3 +1,10 @@
+## [0.5.2](https://github.com/meappy/kumon-marker/compare/v0.5.1...v0.5.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* improve error messages for Google Drive connection issues ([8eaee17](https://github.com/meappy/kumon-marker/commit/8eaee17958bd2c0684667ee031e7e969ab9dfe71))
+
 ## [0.5.1](https://github.com/meappy/kumon-marker/compare/v0.5.0...v0.5.1) (2026-01-18)
 
 
