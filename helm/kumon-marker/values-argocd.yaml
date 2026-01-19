@@ -52,6 +52,7 @@ config:
     allowedUsers:
       - "meappy@gmail.com"
       - "gerald@meappy.com"
+      - "christopher.xj.wong@gmail.com"
 
 # RabbitMQ configuration
 rabbitmq:
