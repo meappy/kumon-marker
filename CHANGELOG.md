@@ -1,3 +1,10 @@
+## [0.5.3](https://github.com/meappy/kumon-marker/compare/v0.5.2...v0.5.3) (2026-01-19)
+
+
+### Bug Fixes
+
+* prevent HTTPException from being caught by generic exception handler ([28346dd](https://github.com/meappy/kumon-marker/commit/28346ddc195c44f08419e2e07460550ce21ea7bb))
+
 ## [0.5.2](https://github.com/meappy/kumon-marker/compare/v0.5.1...v0.5.2) (2026-01-19)
 
 
