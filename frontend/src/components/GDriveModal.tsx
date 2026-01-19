@@ -247,7 +247,22 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
         <div className="flex-1 overflow-y-auto p-4">
           {loading && <p className="text-center text-gray-500">Loading...</p>}
           {scanning && <p className="text-center text-gray-500">Scanning Drive files...</p>}
-          {error && <p className="text-center text-red-600">{error}</p>}
+          {error && (
+            <div className="text-center">
+              <p className="text-red-600">{error}</p>
+              {error.toLowerCase().includes('not connected') && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Please connect Google Drive in{' '}
+                  <button
+                    onClick={onClose}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Settings
+                  </button>
+                </p>
+              )}
+            </div>
+          )}
           {!loading && !scanning && !error && files.length === 0 && (
             <p className="text-center text-gray-500">No PDF files found</p>
           )}
