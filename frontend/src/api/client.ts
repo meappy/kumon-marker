@@ -121,8 +121,22 @@ export interface GoogleAuthStatus {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    let errorDetail = `HTTP ${response.status}`;
+    try {
+      const errorBody = await response.text();
+      if (errorBody) {
+        try {
+          const error = JSON.parse(errorBody);
+          errorDetail = error.detail || error.message || errorBody;
+        } catch {
+          // Not JSON, use the text directly if it's short enough
+          errorDetail = errorBody.length < 200 ? errorBody : `HTTP ${response.status}`;
+        }
+      }
+    } catch {
+      // Couldn't read body
+    }
+    throw new Error(errorDetail);
   }
   try {
     return await response.json();
