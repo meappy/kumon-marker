@@ -82,14 +82,30 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
 
   // Check if a Drive file has already been marked
   // Note: GDrive sheet_id is single (e.g., "C26a"), worksheet sheet_id is a range (e.g., "C26a-C28b")
+  // Match by sheet_id first, then by student_name if both have names
   const isAlreadyMarked = useCallback((file: GDriveFile): WorksheetSummary | undefined => {
     if (!file.sheet_id) return undefined;
-    return worksheets.find(
-      (ws) =>
-        ws.sheet_id?.startsWith(file.sheet_id!) &&
-        ((!ws.student_name && !file.student_name) ||
-          ws.student_name?.toLowerCase() === file.student_name?.toLowerCase())
+
+    // Find worksheets with matching sheet_id
+    const matchingBySheetId = worksheets.filter(
+      (ws) => ws.sheet_id?.startsWith(file.sheet_id!)
     );
+
+    if (matchingBySheetId.length === 0) return undefined;
+
+    // If only one match, return it regardless of student name
+    if (matchingBySheetId.length === 1) return matchingBySheetId[0];
+
+    // Multiple matches - try to match by student name if available
+    if (file.student_name) {
+      const nameMatch = matchingBySheetId.find(
+        (ws) => ws.student_name?.toLowerCase() === file.student_name?.toLowerCase()
+      );
+      if (nameMatch) return nameMatch;
+    }
+
+    // Return the most recent match
+    return matchingBySheetId[0];
   }, [worksheets]);
 
   // Find active job for a file (by matching filename to worksheet_id)

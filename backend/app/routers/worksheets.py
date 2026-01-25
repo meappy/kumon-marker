@@ -332,14 +332,39 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
+    Uses cached validation results to avoid re-downloading already validated files.
     """
     service = get_gdrive_service(user)
     folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
     files = service.list_pdfs(folder)
 
-    # Validate each file to check if it's a Kumon worksheet
+    # Load existing cache to reuse validation results
+    existing_cache = load_gdrive_cache(user)
+    cached_files_by_id = {}
+    if existing_cache and "files" in existing_cache:
+        for cached in existing_cache["files"]:
+            if isinstance(cached, dict) and cached.get("id"):
+                cached_files_by_id[cached["id"]] = cached
+
+    # Validate each file, reusing cache where possible
     validated_files = []
     for f in files:
+        # Check if we have a cached validation for this file
+        cached = cached_files_by_id.get(f.id)
+        if cached and cached.get("is_kumon") is not None:
+            # Reuse cached validation
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=cached.get("is_kumon"),
+                sheet_id=cached.get("sheet_id"),
+                student_name=cached.get("student_name"),
+            ))
+            continue
+
+        # New file or not validated - download and validate
         try:
             pdf_bytes = service.download_file_bytes(f.id)
             validation = validate_kumon_from_bytes(pdf_bytes)
