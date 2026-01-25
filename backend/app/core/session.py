@@ -57,13 +57,18 @@ def decode_session_token(token: str) -> Optional[User]:
 def set_session_cookie(response: Response, user: User) -> None:
     """Set the session cookie on a response."""
     token = create_session_token(user)
+    # Use secure=True for HTTPS (production)
+    # Check if running in production by looking at environment
+    import os
+    is_production = os.environ.get("ENVIRONMENT", "").lower() == "production" or \
+                    os.environ.get("KUBERNETES_SERVICE_HOST") is not None
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
-        secure=False,  # Set to True in production with HTTPS
+        secure=is_production,
     )
 
 
