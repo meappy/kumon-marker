@@ -12,7 +12,13 @@ from googleapiclient.http import MediaIoBaseDownload
 from app.models.schemas import GDriveFile
 from app.core.config import settings
 
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+# Must match scopes in auth.py for token refresh to work correctly
+SCOPES = [
+    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'openid',
+]
 
 
 def get_token_path() -> Path:
