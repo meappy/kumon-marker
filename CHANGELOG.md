@@ -1,3 +1,10 @@
+## [0.6.2](https://github.com/meappy/kumon-marker/compare/v0.6.1...v0.6.2) (2026-01-25)
+
+
+### Bug Fixes
+
+* improve Google Drive file matching and add validation caching ([9ea2a50](https://github.com/meappy/kumon-marker/commit/9ea2a5040edb66ff46dcac9c4b6807c0c86a7d6f))
+
 ## [0.6.1](https://github.com/meappy/kumon-marker/compare/v0.6.0...v0.6.1) (2026-01-25)
 
 
