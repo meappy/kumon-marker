@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/meappy/kumon-marker/compare/v0.6.0...v0.6.1) (2026-01-25)
+
+
+### Bug Fixes
+
+* session cookie secure flag and OAuth scope mismatch ([91011cd](https://github.com/meappy/kumon-marker/commit/91011cdf2545f301cbcff4258a444747e393dd8b))
+
 # [0.6.0](https://github.com/meappy/kumon-marker/compare/v0.5.3...v0.6.0) (2026-01-19)
 
 
