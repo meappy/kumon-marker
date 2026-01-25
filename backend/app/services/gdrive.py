@@ -38,8 +38,19 @@ class GDriveService:
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                self.token_path.write_text(creds.to_json())
+                try:
+                    creds.refresh(Request())
+                    self.token_path.write_text(creds.to_json())
+                except Exception as e:
+                    # Token refresh failed - likely revoked or invalid
+                    error_msg = str(e).lower()
+                    if "revoked" in error_msg or "invalid" in error_msg or "expired" in error_msg:
+                        raise FileNotFoundError(
+                            "Google Drive access was revoked. Please reconnect via Settings."
+                        )
+                    raise FileNotFoundError(
+                        f"Failed to refresh Google Drive token: {e}. Please reconnect via Settings."
+                    )
             else:
                 # Token is invalid and can't be refreshed
                 raise FileNotFoundError(
