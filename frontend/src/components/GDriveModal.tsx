@@ -130,6 +130,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
   }, []);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [revalidating, setRevalidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Queue management
@@ -138,15 +139,17 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const processingRef = useRef(false);
 
-  const fetchFiles = async (refresh: boolean = false) => {
-    if (refresh) {
+  const fetchFiles = async (refresh: boolean = false, revalidate: boolean = false) => {
+    if (revalidate) {
+      setRevalidating(true);
+    } else if (refresh) {
       setScanning(true);
     } else {
       setLoading(true);
     }
     setError(null);
     try {
-      const response = await api.listGDriveFiles(refresh);
+      const response = await api.listGDriveFiles(refresh, revalidate);
       setFiles(response.files || []);
       setScannedAt(response.scanned_at || null);
     } catch (err) {
@@ -154,6 +157,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
     } finally {
       setLoading(false);
       setScanning(false);
+      setRevalidating(false);
     }
   };
 
@@ -253,12 +257,20 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchFiles(true)}
-              disabled={scanning || loading || activeJobs.length > 0 || processing !== null}
+              onClick={() => fetchFiles(true, false)}
+              disabled={scanning || revalidating || loading || activeJobs.length > 0 || processing !== null}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={activeJobs.length > 0 || processing !== null ? 'Cannot refresh while marking is in progress' : undefined}
+              title={activeJobs.length > 0 || processing !== null ? 'Cannot refresh while marking is in progress' : 'Check for new files (fast)'}
             >
               {scanning ? 'Scanning...' : 'Refresh'}
+            </button>
+            <button
+              onClick={() => fetchFiles(false, true)}
+              disabled={scanning || revalidating || loading || activeJobs.length > 0 || processing !== null}
+              className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title={activeJobs.length > 0 || processing !== null ? 'Cannot revalidate while marking is in progress' : 'Re-extract all sheet IDs (slow)'}
+            >
+              {revalidating ? 'Revalidating...' : 'Revalidate'}
             </button>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">
               ×
@@ -269,6 +281,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
         <div className="flex-1 overflow-y-auto p-4">
           {loading && <p className="text-center text-gray-500">Loading...</p>}
           {scanning && <p className="text-center text-gray-500">Scanning Drive files...</p>}
+          {revalidating && <p className="text-center text-gray-500">Revalidating files (this may take a while)...</p>}
           {error && (
             <div className="text-center">
               <p className="text-red-600">{error}</p>
