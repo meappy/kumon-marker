@@ -426,6 +426,12 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
                     "scanned_at": cache["scanned_at"],
                     "files": cache["files"],
                 }
+        else:
+            # When refresh=True, delete cache to force re-validation of all files
+            cache_path = get_gdrive_cache_path(user)
+            if cache_path.exists():
+                cache_path.unlink()
+                print(f"Cleared GDrive cache for user {user.id}")
 
         # Check if user has Google token
         token_path = get_user_token_path(user.id)
