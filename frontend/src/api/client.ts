@@ -218,11 +218,8 @@ export const api = {
     return handleResponse(response);
   },
 
-  async listGDriveFiles(refresh: boolean = false, revalidate: boolean = false): Promise<GDriveFilesResponse> {
-    const params = new URLSearchParams();
-    if (refresh) params.set('refresh', 'true');
-    if (revalidate) params.set('revalidate', 'true');
-    const url = params.toString() ? `${API_BASE}/gdrive/files?${params}` : `${API_BASE}/gdrive/files`;
+  async listGDriveFiles(refresh: boolean = false): Promise<GDriveFilesResponse> {
+    const url = refresh ? `${API_BASE}/gdrive/files?refresh=true` : `${API_BASE}/gdrive/files`;
     const response = await fetch(url);
     return handleResponse(response);
   },
