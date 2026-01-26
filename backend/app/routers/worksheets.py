@@ -371,19 +371,48 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
         if filename_match:
             filename_sheet_id = filename_match.group(1)
             print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
+            # Filename has valid Kumon pattern - assume it's Kumon (no download needed)
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=True,
+                sheet_id=filename_sheet_id,
+                student_name=None,
+            ))
+            continue
 
-        # All PDFs in the Kumon Drive folder are assumed to be Kumon worksheets
-        # The actual sheet_id will be extracted properly during marking
-        # This makes the scan instant and avoids unreliable OCR/vision validation
-        validated_files.append(GDriveFile(
-            id=f.id,
-            name=f.name,
-            created_time=f.created_time,
-            size=f.size,
-            is_kumon=True,  # Assume Kumon since it's in the Kumon folder
-            sheet_id=filename_sheet_id,  # From filename if available, otherwise None
-            student_name=None,  # Will be extracted when marking
-        ))
+        # No sheet_id in filename - do quick text-layer check (fast, no OCR)
+        try:
+            import fitz
+            pdf_bytes = service.download_file_bytes(f.id)
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            text = doc[0].get_text().upper() if doc.page_count > 0 else ""
+            doc.close()
+
+            is_kumon = "KUMON" in text
+            print(f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}")
+
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=is_kumon,
+                sheet_id=None,  # Will be extracted when marking
+                student_name=None,
+            ))
+        except Exception as e:
+            print(f"Error checking {f.name}: {e}")
+            # Include file but mark as unknown
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=None,
+            ))
 
     scanned_at = datetime.now().isoformat()
     return validated_files, scanned_at
