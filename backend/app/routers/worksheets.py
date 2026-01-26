@@ -329,28 +329,30 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
-def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
+def _scan_gdrive_files_sync(user: User, force_refresh: bool = False) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
-    Uses cached validation results to avoid re-downloading already validated files.
+    Uses cached validation results to avoid re-downloading already validated files,
+    unless force_refresh is True.
     """
     service = get_gdrive_service(user)
     folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
     files = service.list_pdfs(folder)
 
-    # Load existing cache to reuse validation results
-    existing_cache = load_gdrive_cache(user)
+    # Load existing cache to reuse validation results (unless force_refresh)
     cached_files_by_id = {}
-    if existing_cache and "files" in existing_cache:
-        for cached in existing_cache["files"]:
-            if isinstance(cached, dict) and cached.get("id"):
-                cached_files_by_id[cached["id"]] = cached
+    if not force_refresh:
+        existing_cache = load_gdrive_cache(user)
+        if existing_cache and "files" in existing_cache:
+            for cached in existing_cache["files"]:
+                if isinstance(cached, dict) and cached.get("id"):
+                    cached_files_by_id[cached["id"]] = cached
 
     # Validate each file, reusing cache where possible
     validated_files = []
     for f in files:
-        # Check if we have a cached validation for this file
+        # Check if we have a cached validation for this file (skip if force_refresh)
         cached = cached_files_by_id.get(f.id)
         if cached and cached.get("is_kumon") is not None:
             # Reuse cached validation
@@ -459,7 +461,7 @@ async def list_gdrive_files(
         # Run blocking operations in thread pool to avoid blocking the event loop
         # This prevents health check timeouts during long scans
         validated_files, scanned_at = await asyncio.to_thread(
-            _scan_gdrive_files_sync, user
+            _scan_gdrive_files_sync, user, refresh
         )
 
         # Save to cache
