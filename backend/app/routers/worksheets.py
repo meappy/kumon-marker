@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -328,21 +329,20 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
-def _scan_gdrive_files_sync(user: User, force_revalidate: bool = False) -> tuple[list[GDriveFile], str]:
+def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
-    Uses cached validation results to avoid re-downloading already validated files,
-    unless force_revalidate is True.
+    Uses cached validation results to avoid re-downloading already validated files.
     """
     service = get_gdrive_service(user)
     folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
     files = service.list_pdfs(folder)
 
-    # Load existing cache to reuse validation results (unless forcing revalidation)
+    # Load existing cache to reuse validation results
     existing_cache = load_gdrive_cache(user)
     cached_files_by_id = {}
-    if not force_revalidate and existing_cache and "files" in existing_cache:
+    if existing_cache and "files" in existing_cache:
         for cached in existing_cache["files"]:
             if isinstance(cached, dict) and cached.get("id"):
                 cached_files_by_id[cached["id"]] = cached
@@ -369,13 +369,34 @@ def _scan_gdrive_files_sync(user: User, force_revalidate: bool = False) -> tuple
         try:
             pdf_bytes = service.download_file_bytes(f.id)
             validation = validate_kumon_from_bytes(pdf_bytes)
+
+            # Try to extract sheet_id from filename as fallback/verification
+            # Filename format: "D166a - Reduction.pdf" or "D166a.pdf"
+            filename_sheet_id = None
+            filename_match = re.match(r'^([A-Z]\d{1,3}[ab]?)', f.name.upper())
+            if filename_match:
+                filename_sheet_id = filename_match.group(1)
+                print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
+
+            # Use filename sheet_id if OCR failed or got a suspicious result
+            final_sheet_id = validation.sheet_id
+            if filename_sheet_id:
+                # If OCR didn't find anything, use filename
+                if not validation.sheet_id:
+                    final_sheet_id = filename_sheet_id
+                # If OCR found something but filename disagrees, prefer filename
+                # (filenames are usually more reliable than OCR)
+                elif validation.sheet_id != filename_sheet_id:
+                    print(f"OCR sheet_id '{validation.sheet_id}' differs from filename '{filename_sheet_id}', using filename")
+                    final_sheet_id = filename_sheet_id
+
             validated_files.append(GDriveFile(
                 id=f.id,
                 name=f.name,
                 created_time=f.created_time,
                 size=f.size,
                 is_kumon=validation.is_kumon,
-                sheet_id=validation.sheet_id,
+                sheet_id=final_sheet_id,
                 student_name=validation.student_name,
             ))
         except Exception as e:
@@ -413,9 +434,8 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
 
         # Run blocking operations in thread pool to avoid blocking the event loop
         # This prevents health check timeouts during long scans
-        # When refresh=True, force revalidation to pick up OCR improvements
         validated_files, scanned_at = await asyncio.to_thread(
-            _scan_gdrive_files_sync, user, refresh
+            _scan_gdrive_files_sync, user
         )
 
         # Save to cache
