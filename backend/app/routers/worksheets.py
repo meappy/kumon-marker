@@ -365,51 +365,25 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
             ))
             continue
 
-        # Try to extract sheet_id from filename FIRST (instant, no download needed)
-        # Filename format: "D166a - Reduction.pdf" or "D166a.pdf"
+        # Try to extract sheet_id from filename (e.g., "D166a - Reduction.pdf")
         filename_sheet_id = None
         filename_match = re.match(r'^([A-Z]\d{1,3}[ABab]?)', f.name.upper())
         if filename_match:
             filename_sheet_id = filename_match.group(1)
             print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
 
-        # If filename has valid sheet_id, use it directly (skip slow download+OCR)
-        if filename_sheet_id:
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=True,  # Assume Kumon if filename matches pattern
-                sheet_id=filename_sheet_id,
-                student_name=None,  # Will be extracted when marking
-            ))
-            continue
-
-        # No sheet_id from filename - download and validate with OCR
-        try:
-            pdf_bytes = service.download_file_bytes(f.id)
-            validation = validate_kumon_from_bytes(pdf_bytes)
-
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=validation.is_kumon,
-                sheet_id=validation.sheet_id,
-                student_name=validation.student_name,
-            ))
-        except Exception as e:
-            print(f"Error validating {f.name}: {e}")
-            # Include file but mark as unknown
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=None,
-            ))
+        # All PDFs in the Kumon Drive folder are assumed to be Kumon worksheets
+        # The actual sheet_id will be extracted properly during marking
+        # This makes the scan instant and avoids unreliable OCR/vision validation
+        validated_files.append(GDriveFile(
+            id=f.id,
+            name=f.name,
+            created_time=f.created_time,
+            size=f.size,
+            is_kumon=True,  # Assume Kumon since it's in the Kumon folder
+            sheet_id=filename_sheet_id,  # From filename if available, otherwise None
+            student_name=None,  # Will be extracted when marking
+        ))
 
     scanned_at = datetime.now().isoformat()
     return validated_files, scanned_at
@@ -418,25 +392,16 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
 @router.get("/gdrive/files")
 async def list_gdrive_files(
     refresh: bool = False,
-    revalidate: bool = False,
     user: User = Depends(get_current_user),
 ):
     """List PDF files in Google Drive folder for the current user.
 
     Args:
-        refresh: Re-fetch file list from Drive but reuse cached validations (fast)
-        revalidate: Force re-validation of all files (slow, deletes cache first)
+        refresh: Re-fetch file list from Drive (fast, no validation)
     """
     try:
-        # If revalidate requested, delete cache to force full re-validation
-        if revalidate:
-            cache_path = get_gdrive_cache_path(user)
-            if cache_path.exists():
-                cache_path.unlink()
-                print(f"Cleared GDrive cache for user {user.id} (revalidate=True)")
-
-        # Check cache first (unless refresh or revalidate requested)
-        if not refresh and not revalidate:
+        # Check cache first (unless refresh requested)
+        if not refresh:
             cache = load_gdrive_cache(user)
             if cache:
                 return {
