@@ -416,23 +416,33 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
 
 
 @router.get("/gdrive/files")
-async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_current_user)):
-    """List PDF files in Google Drive folder for the current user."""
+async def list_gdrive_files(
+    refresh: bool = False,
+    revalidate: bool = False,
+    user: User = Depends(get_current_user),
+):
+    """List PDF files in Google Drive folder for the current user.
+
+    Args:
+        refresh: Re-fetch file list from Drive but reuse cached validations (fast)
+        revalidate: Force re-validation of all files (slow, deletes cache first)
+    """
     try:
-        # Check cache first (unless refresh requested)
-        if not refresh:
+        # If revalidate requested, delete cache to force full re-validation
+        if revalidate:
+            cache_path = get_gdrive_cache_path(user)
+            if cache_path.exists():
+                cache_path.unlink()
+                print(f"Cleared GDrive cache for user {user.id} (revalidate=True)")
+
+        # Check cache first (unless refresh or revalidate requested)
+        if not refresh and not revalidate:
             cache = load_gdrive_cache(user)
             if cache:
                 return {
                     "scanned_at": cache["scanned_at"],
                     "files": cache["files"],
                 }
-        else:
-            # When refresh=True, delete cache to force re-validation of all files
-            cache_path = get_gdrive_cache_path(user)
-            if cache_path.exists():
-                cache_path.unlink()
-                print(f"Cleared GDrive cache for user {user.id}")
 
         # Check if user has Google token
         token_path = get_user_token_path(user.id)
