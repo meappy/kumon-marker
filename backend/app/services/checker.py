@@ -295,36 +295,13 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
         image_bytes = pix.tobytes("png")
         doc.close()
 
-        # If no text found (scanned PDF), try OCR first, then vision model
+        # If no text found (scanned PDF), use vision model directly
+        # (Tesseract OCR is unreliable for sheet ID extraction from scanned worksheets)
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
-                print("No text layer found, trying OCR extraction...")
-
-            # Try OCR first (faster, no API cost)
-            ocr_sheet_id = _extract_sheet_id_with_ocr(image_bytes)
-            ocr_topic = _extract_topic_with_ocr(image_bytes)
-
-            if ocr_sheet_id:
-                print(f"OCR found sheet_id: {ocr_sheet_id}, topic: {ocr_topic}")
-                # Extract student name using vision model (handwriting recognition)
-                student_name = None
-                if extract_name:
-                    try:
-                        from app.services.ocr import extract_name_with_vision
-                        student_name = extract_name_with_vision(image_bytes)
-                    except Exception as e:
-                        print(f"Name extraction error: {e}")
-
-                return ValidationResult(
-                    is_kumon=True,
-                    sheet_id=ocr_sheet_id,
-                    subject="maths",
-                    topic=ocr_topic,
-                    student_name=student_name,
-                )
-
-            # Fall back to vision model if OCR didn't find sheet ID
-            print("OCR did not find sheet ID, falling back to vision model...")
+                print("No text layer found, using vision model for validation...")
+            else:
+                print("No KUMON keyword in text, using vision model for validation...")
             return _validate_with_vision(image_bytes)
 
         # Text-based validation (faster, no API cost)
