@@ -365,30 +365,31 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
             ))
             continue
 
-        # New file or not validated - download and validate
+        # Try to extract sheet_id from filename FIRST (instant, no download needed)
+        # Filename format: "D166a - Reduction.pdf" or "D166a.pdf"
+        filename_sheet_id = None
+        filename_match = re.match(r'^([A-Z]\d{1,3}[ab]?)', f.name.upper())
+        if filename_match:
+            filename_sheet_id = filename_match.group(1)
+            print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
+
+        # If filename has valid sheet_id, use it directly (skip slow download+OCR)
+        if filename_sheet_id:
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=True,  # Assume Kumon if filename matches pattern
+                sheet_id=filename_sheet_id,
+                student_name=None,  # Will be extracted when marking
+            ))
+            continue
+
+        # No sheet_id from filename - download and validate with OCR
         try:
             pdf_bytes = service.download_file_bytes(f.id)
             validation = validate_kumon_from_bytes(pdf_bytes)
-
-            # Try to extract sheet_id from filename as fallback/verification
-            # Filename format: "D166a - Reduction.pdf" or "D166a.pdf"
-            filename_sheet_id = None
-            filename_match = re.match(r'^([A-Z]\d{1,3}[ab]?)', f.name.upper())
-            if filename_match:
-                filename_sheet_id = filename_match.group(1)
-                print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
-
-            # Use filename sheet_id if OCR failed or got a suspicious result
-            final_sheet_id = validation.sheet_id
-            if filename_sheet_id:
-                # If OCR didn't find anything, use filename
-                if not validation.sheet_id:
-                    final_sheet_id = filename_sheet_id
-                # If OCR found something but filename disagrees, prefer filename
-                # (filenames are usually more reliable than OCR)
-                elif validation.sheet_id != filename_sheet_id:
-                    print(f"OCR sheet_id '{validation.sheet_id}' differs from filename '{filename_sheet_id}', using filename")
-                    final_sheet_id = filename_sheet_id
 
             validated_files.append(GDriveFile(
                 id=f.id,
@@ -396,7 +397,7 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
                 created_time=f.created_time,
                 size=f.size,
                 is_kumon=validation.is_kumon,
-                sheet_id=final_sheet_id,
+                sheet_id=validation.sheet_id,
                 student_name=validation.student_name,
             ))
         except Exception as e:
