@@ -368,7 +368,7 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
         # Try to extract sheet_id from filename FIRST (instant, no download needed)
         # Filename format: "D166a - Reduction.pdf" or "D166a.pdf"
         filename_sheet_id = None
-        filename_match = re.match(r'^([A-Z]\d{1,3}[ab]?)', f.name.upper())
+        filename_match = re.match(r'^([A-Z]\d{1,3}[ABab]?)', f.name.upper())
         if filename_match:
             filename_sheet_id = filename_match.group(1)
             print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
