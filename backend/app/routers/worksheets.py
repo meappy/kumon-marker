@@ -328,20 +328,21 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
-def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
+def _scan_gdrive_files_sync(user: User, force_revalidate: bool = False) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
-    Uses cached validation results to avoid re-downloading already validated files.
+    Uses cached validation results to avoid re-downloading already validated files,
+    unless force_revalidate is True.
     """
     service = get_gdrive_service(user)
     folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
     files = service.list_pdfs(folder)
 
-    # Load existing cache to reuse validation results
+    # Load existing cache to reuse validation results (unless forcing revalidation)
     existing_cache = load_gdrive_cache(user)
     cached_files_by_id = {}
-    if existing_cache and "files" in existing_cache:
+    if not force_revalidate and existing_cache and "files" in existing_cache:
         for cached in existing_cache["files"]:
             if isinstance(cached, dict) and cached.get("id"):
                 cached_files_by_id[cached["id"]] = cached
@@ -412,8 +413,9 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
 
         # Run blocking operations in thread pool to avoid blocking the event loop
         # This prevents health check timeouts during long scans
+        # When refresh=True, force revalidation to pick up OCR improvements
         validated_files, scanned_at = await asyncio.to_thread(
-            _scan_gdrive_files_sync, user
+            _scan_gdrive_files_sync, user, refresh
         )
 
         # Save to cache
