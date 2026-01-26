@@ -1,11 +1,101 @@
 """Worksheet validation service."""
 
+import io
 import re
 from pathlib import Path
 
 import fitz
+import pytesseract
+from PIL import Image
 
 from app.models.schemas import ValidationResult
+
+
+def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
+    """
+    Extract sheet ID from image using Tesseract OCR.
+    Focuses on top-left region where sheet ID is printed (e.g., "D166a").
+    Returns normalized sheet ID or None if not found.
+    """
+    try:
+        # Load image
+        img = Image.open(io.BytesIO(image_bytes))
+
+        # Crop to top-left region (roughly 25% width, 15% height)
+        # This is where the sheet ID is typically printed
+        width, height = img.size
+        crop_box = (0, 0, int(width * 0.25), int(height * 0.15))
+        top_left = img.crop(crop_box)
+
+        # Run OCR on cropped region
+        text = pytesseract.image_to_string(top_left, config='--psm 6')
+        text_upper = text.upper()
+
+        # Extract sheet ID pattern: Letter + 1-3 digits + optional a/b
+        # E.g., "D166a", "B161", "C26A", "O5b"
+        match = re.search(r'\b([A-Z]\s*\d{1,3}\s*[AB]?)\b', text_upper)
+        if match:
+            # Normalize: remove spaces, ensure uppercase
+            sheet_id = re.sub(r'\s+', '', match.group(1))
+            # Validate format
+            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+                return sheet_id
+
+        # If not found in cropped region, try full image
+        text = pytesseract.image_to_string(img, config='--psm 6')
+        text_upper = text.upper()
+        match = re.search(r'\b([A-Z]\s*\d{1,3}\s*[AB]?)\b', text_upper)
+        if match:
+            sheet_id = re.sub(r'\s+', '', match.group(1))
+            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+                return sheet_id
+
+    except Exception as e:
+        print(f"OCR extraction error: {e}")
+
+    return None
+
+
+def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
+    """
+    Extract topic from image using Tesseract OCR.
+    Looks for keywords like "Reduction", "Addition", etc.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+
+        # Crop to top region where topic is printed (below sheet ID)
+        width, height = img.size
+        crop_box = (0, 0, int(width * 0.5), int(height * 0.2))
+        top_region = img.crop(crop_box)
+
+        text = pytesseract.image_to_string(top_region, config='--psm 6')
+        text_lower = text.lower()
+
+        # Check for topic keywords
+        topics = [
+            ("reduction", "Reduction"),
+            ("reduce", "Reduction"),
+            ("subtraction", "Subtraction"),
+            ("subtracting", "Subtraction"),
+            ("addition", "Addition"),
+            ("adding", "Addition"),
+            ("multiplication", "Multiplication"),
+            ("multiply", "Multiplication"),
+            ("division", "Division"),
+            ("dividing", "Division"),
+            ("fraction", "Fractions"),
+            ("integration", "Integration"),
+        ]
+
+        for keyword, topic in topics:
+            if keyword in text_lower:
+                return topic
+
+    except Exception as e:
+        print(f"OCR topic extraction error: {e}")
+
+    return None
 
 
 def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
@@ -169,10 +259,36 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
         image_bytes = pix.tobytes("png")
         doc.close()
 
-        # If no text found (scanned PDF), use vision model
+        # If no text found (scanned PDF), try OCR first, then vision model
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
-                print("No text layer found, using vision validation...")
+                print("No text layer found, trying OCR extraction...")
+
+            # Try OCR first (faster, no API cost)
+            ocr_sheet_id = _extract_sheet_id_with_ocr(image_bytes)
+            ocr_topic = _extract_topic_with_ocr(image_bytes)
+
+            if ocr_sheet_id:
+                print(f"OCR found sheet_id: {ocr_sheet_id}, topic: {ocr_topic}")
+                # Extract student name using vision model (handwriting recognition)
+                student_name = None
+                if extract_name:
+                    try:
+                        from app.services.ocr import extract_name_with_vision
+                        student_name = extract_name_with_vision(image_bytes)
+                    except Exception as e:
+                        print(f"Name extraction error: {e}")
+
+                return ValidationResult(
+                    is_kumon=True,
+                    sheet_id=ocr_sheet_id,
+                    subject="maths",
+                    topic=ocr_topic,
+                    student_name=student_name,
+                )
+
+            # Fall back to vision model if OCR didn't find sheet ID
+            print("OCR did not find sheet ID, falling back to vision model...")
             return _validate_with_vision(image_bytes)
 
         # Text-based validation (faster, no API cost)
@@ -230,13 +346,29 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         text = doc[0].get_text()
         text_upper = text.upper()
 
-        # If no text found (scanned PDF), use vision model
+        # If no text found (scanned PDF), try OCR first, then vision model
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
-                print("No text layer found, using vision validation...")
+                print("No text layer found, trying OCR extraction...")
             pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
             image_bytes = pix.tobytes("png")
             doc.close()
+
+            # Try OCR first (faster, no API cost)
+            ocr_sheet_id = _extract_sheet_id_with_ocr(image_bytes)
+            ocr_topic = _extract_topic_with_ocr(image_bytes)
+
+            if ocr_sheet_id:
+                print(f"OCR found sheet_id: {ocr_sheet_id}, topic: {ocr_topic}")
+                return ValidationResult(
+                    is_kumon=True,
+                    sheet_id=ocr_sheet_id,
+                    subject="maths",
+                    topic=ocr_topic,
+                )
+
+            # Fall back to vision model if OCR didn't find sheet ID
+            print("OCR did not find sheet ID, falling back to vision model...")
             return _validate_with_vision(image_bytes)
 
         doc.close()
