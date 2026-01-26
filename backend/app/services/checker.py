@@ -19,8 +19,13 @@ def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
 
     prompt = """Look at this image and determine if it's a Kumon worksheet.
 
+The sheet ID is printed in the TOP LEFT corner (e.g., "D166a", "B161a", "C26a", "O5a").
+It's a single letter followed by 1-3 digits, optionally followed by 'a' or 'b'.
+The topic is printed below or near the sheet ID (e.g., "Reduction", "Addition", "Subtraction", "Division", "Multiplication", "Fractions", "Integration").
+The student name is handwritten in the "Name" field.
+
 If it IS a Kumon worksheet, respond with JSON:
-{"is_kumon": true, "sheet_id": "<ID like B168a or C26a>", "topic": "<subtraction/addition/multiplication/division or null>", "student_name": "<name if visible or null>"}
+{"is_kumon": true, "sheet_id": "<exact ID from top left like D166a>", "topic": "<topic name or null>", "student_name": "<handwritten name or null>"}
 
 If it is NOT a Kumon worksheet, respond with:
 {"is_kumon": false}
@@ -187,14 +192,20 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
         subject = "maths"
         topic = None
         text_lower = text.lower()
-        if "subtraction" in text_lower:
-            topic = "subtraction"
-        elif "addition" in text_lower:
-            topic = "addition"
-        elif "multiplication" in text_lower:
-            topic = "multiplication"
-        elif "division" in text_lower:
-            topic = "division"
+        if "subtraction" in text_lower or "subtracting" in text_lower:
+            topic = "Subtraction"
+        elif "addition" in text_lower or "adding" in text_lower:
+            topic = "Addition"
+        elif "multiplication" in text_lower or "multiply" in text_lower:
+            topic = "Multiplication"
+        elif "division" in text_lower or "dividing" in text_lower:
+            topic = "Division"
+        elif "reduction" in text_lower or "reduce" in text_lower:
+            topic = "Reduction"
+        elif "fraction" in text_lower:
+            topic = "Fractions"
+        elif "integration" in text_lower:
+            topic = "Integration"
 
         return ValidationResult(
             is_kumon=True,
@@ -238,14 +249,20 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         subject = "maths"
         topic = None
         text_lower = text.lower()
-        if "subtraction" in text_lower:
-            topic = "subtraction"
-        elif "addition" in text_lower:
-            topic = "addition"
-        elif "multiplication" in text_lower:
-            topic = "multiplication"
-        elif "division" in text_lower:
-            topic = "division"
+        if "subtraction" in text_lower or "subtracting" in text_lower:
+            topic = "Subtraction"
+        elif "addition" in text_lower or "adding" in text_lower:
+            topic = "Addition"
+        elif "multiplication" in text_lower or "multiply" in text_lower:
+            topic = "Multiplication"
+        elif "division" in text_lower or "dividing" in text_lower:
+            topic = "Division"
+        elif "reduction" in text_lower or "reduce" in text_lower:
+            topic = "Reduction"
+        elif "fraction" in text_lower:
+            topic = "Fractions"
+        elif "integration" in text_lower:
+            topic = "Integration"
 
         return ValidationResult(
             is_kumon=True,
