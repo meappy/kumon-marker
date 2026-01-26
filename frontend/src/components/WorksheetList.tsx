@@ -57,11 +57,136 @@ function gradeColour(grade: string): string {
 }
 
 type SortOption = 'date-desc' | 'date-asc' | 'student' | 'grade' | 'score-desc' | 'score-asc';
+type GroupOption = 'none' | 'student';
 
 const ITEMS_PER_PAGE = 10;
 
+interface WorksheetCardProps {
+  ws: WorksheetSummary;
+  timezone?: string;
+  processing: string | null;
+  deleting: string | null;
+  onProcess: (id: string) => void;
+  onDelete: (id: string) => void;
+  openOriginalPreview: (ws: WorksheetSummary) => void;
+  openMarkedPreview: (ws: WorksheetSummary) => void;
+  openReportPreview: (ws: WorksheetSummary) => void;
+  showStudentName?: boolean;
+}
+
+function WorksheetCard({
+  ws,
+  timezone,
+  processing,
+  deleting,
+  onProcess,
+  onDelete,
+  openOriginalPreview,
+  openMarkedPreview,
+  openReportPreview,
+  showStudentName = true,
+}: WorksheetCardProps) {
+  return (
+    <div className="bg-white p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-gray-900">
+              {formatSheetNameConsistent(ws.sheet_id)}
+              {showStudentName && ws.student_name && (
+                <span className="ml-1 text-gray-500 font-normal">({ws.student_name})</span>
+              )}
+            </span>
+            {/* Desktop: full grade badge inline */}
+            <span className={`hidden sm:inline px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
+              Grade {ws.grade} ({ws.score_percentage.toFixed(0)}% {ws.total_questions - ws.total_errors}/{ws.total_questions})
+            </span>
+          </div>
+          {/* Mobile: grade badge on own line */}
+          <div className="sm:hidden flex items-center gap-2 mt-1">
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
+              Grade {ws.grade} ({ws.score_percentage.toFixed(0)}%)
+            </span>
+            <span className="text-xs text-gray-500">
+              {ws.total_questions - ws.total_errors}/{ws.total_questions}
+            </span>
+          </div>
+          <div className="text-xs sm:text-sm text-gray-500 mt-1">
+            {formatDateTime(ws.timestamp, timezone)} · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {!ws.has_marked_pdf && (
+            <button
+              onClick={() => onProcess(ws.id)}
+              disabled={processing === ws.id}
+              className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+              title="Process"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => openOriginalPreview(ws)}
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+            title="Original PDF"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </button>
+          {ws.has_marked_pdf && (
+            <button
+              onClick={() => openMarkedPreview(ws)}
+              className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
+              title="Marked Worksheet"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          )}
+          {ws.has_report && (
+            <button
+              onClick={() => openReportPreview(ws)}
+              className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+              title="Report Card"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(ws.id)}
+            disabled={deleting === ws.id}
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+            title="Delete"
+          >
+            {deleting === ws.id ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone }: WorksheetListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [groupBy, setGroupBy] = useState<GroupOption>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [previewModal, setPreviewModal] = useState<{
@@ -116,6 +241,43 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
     setSearchQuery(query);
     setCurrentPage(1);
   };
+
+  const handleGroupChange = (newGroup: GroupOption) => {
+    setGroupBy(newGroup);
+    setCollapsedGroups(new Set());
+    setCurrentPage(1);
+  };
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  };
+
+  // Group worksheets by student name
+  const groupedWorksheets = groupBy === 'student'
+    ? sortedWorksheets.reduce<Record<string, WorksheetSummary[]>>((acc, ws) => {
+        const key = ws.student_name || 'Unknown';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(ws);
+        return acc;
+      }, {})
+    : null;
+
+  // Get sorted group keys
+  const groupKeys = groupedWorksheets
+    ? Object.keys(groupedWorksheets).sort((a, b) => {
+        if (a === 'Unknown') return 1;
+        if (b === 'Unknown') return -1;
+        return a.localeCompare(b);
+      })
+    : [];
 
   const openMarkedPreview = (ws: WorksheetSummary) => {
     const displayName = formatSheetNameConsistent(ws.sheet_id);
@@ -183,6 +345,14 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
               </svg>
             </div>
             <select
+              value={groupBy}
+              onChange={(e) => handleGroupChange(e.target.value as GroupOption)}
+              className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="none">No grouping</option>
+              <option value="student">Group by student</option>
+            </select>
+            <select
               value={sortBy}
               onChange={(e) => handleSortChange(e.target.value as SortOption)}
               className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -208,107 +378,80 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
             <p>No worksheets match "{searchQuery}"</p>
           </div>
         )}
-        {paginatedWorksheets.map((ws) => (
-        <div
-          key={ws.id}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-gray-900">
-                  {formatSheetNameConsistent(ws.sheet_id)}
-                  {ws.student_name && (
-                    <span className="ml-1 text-gray-500 font-normal">({ws.student_name})</span>
-                  )}
-                </span>
-                {/* Desktop: full grade badge inline */}
-                <span className={`hidden sm:inline px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
-                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}% {ws.total_questions - ws.total_errors}/{ws.total_questions})
-                </span>
-              </div>
-              {/* Mobile: grade badge on own line */}
-              <div className="sm:hidden flex items-center gap-2 mt-1">
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${gradeColour(ws.grade)}`}>
-                  Grade {ws.grade} ({ws.score_percentage.toFixed(0)}%)
-                </span>
-                <span className="text-xs text-gray-500">
-                  {ws.total_questions - ws.total_errors}/{ws.total_questions}
-                </span>
-              </div>
-              <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                {formatDateTime(ws.timestamp, timezone)} · {ws.pages} {ws.pages === 1 ? 'page' : 'pages'}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {!ws.has_marked_pdf && (
-                <button
-                  onClick={() => onProcess(ws.id)}
-                  disabled={processing === ws.id}
-                  className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  title="Process"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-              )}
+
+        {/* Grouped view */}
+        {groupBy === 'student' && groupedWorksheets && groupKeys.map((groupKey) => {
+          const groupWorksheets = groupedWorksheets[groupKey];
+          const isCollapsed = collapsedGroups.has(groupKey);
+          const avgScore = groupWorksheets.reduce((sum, ws) => sum + ws.score_percentage, 0) / groupWorksheets.length;
+
+          return (
+            <div key={groupKey} className="border border-gray-200 rounded-lg overflow-hidden">
               <button
-                onClick={() => openOriginalPreview(ws)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-                title="Original PDF"
+                onClick={() => toggleGroupCollapse(groupKey)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+                <div className="flex items-center gap-3">
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span className="font-medium text-gray-900">{groupKey}</span>
+                  <span className="text-sm text-gray-500">
+                    ({groupWorksheets.length} worksheet{groupWorksheets.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                <span className="text-sm text-gray-500">
+                  Avg: {avgScore.toFixed(0)}%
+                </span>
               </button>
-              {ws.has_marked_pdf && (
-                <button
-                  onClick={() => openMarkedPreview(ws)}
-                  className="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded"
-                  title="Marked Worksheet"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
+              {!isCollapsed && (
+                <div className="divide-y divide-gray-100">
+                  {groupWorksheets.map((ws) => (
+                    <WorksheetCard
+                      key={ws.id}
+                      ws={ws}
+                      timezone={timezone}
+                      processing={processing}
+                      deleting={deleting}
+                      onProcess={onProcess}
+                      onDelete={onDelete}
+                      openOriginalPreview={openOriginalPreview}
+                      openMarkedPreview={openMarkedPreview}
+                      openReportPreview={openReportPreview}
+                      showStudentName={false}
+                    />
+                  ))}
+                </div>
               )}
-              {ws.has_report && (
-                <button
-                  onClick={() => openReportPreview(ws)}
-                  className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
-                  title="Report Card"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={() => onDelete(ws.id)}
-                disabled={deleting === ws.id}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
-                title="Delete"
-              >
-                {deleting === ws.id ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                )}
-              </button>
             </div>
+          );
+        })}
+
+        {/* Flat view */}
+        {groupBy === 'none' && paginatedWorksheets.map((ws) => (
+          <div key={ws.id} className="rounded-lg shadow-sm border border-gray-200">
+            <WorksheetCard
+              ws={ws}
+              timezone={timezone}
+              processing={processing}
+              deleting={deleting}
+              onProcess={onProcess}
+              onDelete={onDelete}
+              openOriginalPreview={openOriginalPreview}
+              openMarkedPreview={openMarkedPreview}
+              openReportPreview={openReportPreview}
+              showStudentName={true}
+            />
           </div>
-        </div>
         ))}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Pagination (only for flat view) */}
+        {groupBy === 'none' && totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 pt-4">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
