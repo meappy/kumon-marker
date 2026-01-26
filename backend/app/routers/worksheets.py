@@ -17,7 +17,7 @@ from app.models.schemas import (
     HealthResponse,
     UploadedFile,
 )
-from app.services.checker import validate_kumon_worksheet, validate_kumon_from_bytes, extract_sheet_info
+from app.services.checker import validate_kumon_worksheet, extract_sheet_info
 from app.services.ocr import analyse_worksheet
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
