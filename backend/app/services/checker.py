@@ -11,6 +11,28 @@ from PIL import Image
 from app.models.schemas import ValidationResult
 
 
+def _preprocess_for_ocr(img: Image.Image) -> Image.Image:
+    """Pre-process image for better OCR accuracy."""
+    from PIL import ImageEnhance, ImageFilter
+
+    # Convert to grayscale
+    if img.mode != 'L':
+        img = img.convert('L')
+
+    # Increase contrast
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2.0)
+
+    # Apply slight sharpening
+    img = img.filter(ImageFilter.SHARPEN)
+
+    # Binarize (threshold) - helps with scanned documents
+    threshold = 180
+    img = img.point(lambda x: 255 if x > threshold else 0, 'L')
+
+    return img
+
+
 def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
     """
     Extract sheet ID from image using Tesseract OCR.
@@ -21,37 +43,59 @@ def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
         # Load image
         img = Image.open(io.BytesIO(image_bytes))
 
-        # Crop to top-left region (roughly 25% width, 15% height)
-        # This is where the sheet ID is typically printed
+        # Crop to top-left region (larger area to capture sheet ID reliably)
+        # Sheet ID is typically in top-left corner
         width, height = img.size
-        crop_box = (0, 0, int(width * 0.25), int(height * 0.15))
+        crop_box = (0, 0, int(width * 0.3), int(height * 0.12))
         top_left = img.crop(crop_box)
 
-        # Run OCR on cropped region
-        text = pytesseract.image_to_string(top_left, config='--psm 6')
-        text_upper = text.upper()
+        # Pre-process for better OCR
+        top_left_processed = _preprocess_for_ocr(top_left)
+
+        # Run OCR with optimised config for single line/word
+        # --psm 7 = treat image as a single line of text
+        text = pytesseract.image_to_string(
+            top_left_processed,
+            config='--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab'
+        )
+        text_upper = text.upper().strip()
+        print(f"OCR raw text (top-left): '{text_upper}'", flush=True)
 
         # Extract sheet ID pattern: Letter + 1-3 digits + optional a/b
-        # E.g., "D166a", "B161", "C26A", "O5b"
-        match = re.search(r'\b([A-Z]\s*\d{1,3}\s*[AB]?)\b', text_upper)
+        # E.g., "D166A", "B161", "C26A"
+        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
         if match:
-            # Normalize: remove spaces, ensure uppercase
+            # Normalize: remove spaces
             sheet_id = re.sub(r'\s+', '', match.group(1))
+            print(f"OCR matched sheet_id: '{sheet_id}'", flush=True)
             # Validate format
             if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
                 return sheet_id
 
-        # If not found in cropped region, try full image
-        text = pytesseract.image_to_string(img, config='--psm 6')
+        # If not found, try with different PSM mode (block of text)
+        text = pytesseract.image_to_string(top_left_processed, config='--psm 6')
         text_upper = text.upper()
-        match = re.search(r'\b([A-Z]\s*\d{1,3}\s*[AB]?)\b', text_upper)
+        print(f"OCR raw text (psm 6): '{text_upper[:100]}'", flush=True)
+
+        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
+        if match:
+            sheet_id = re.sub(r'\s+', '', match.group(1))
+            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+                return sheet_id
+
+        # Last resort: try full image
+        img_processed = _preprocess_for_ocr(img)
+        text = pytesseract.image_to_string(img_processed, config='--psm 6')
+        text_upper = text.upper()
+
+        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
         if match:
             sheet_id = re.sub(r'\s+', '', match.group(1))
             if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
                 return sheet_id
 
     except Exception as e:
-        print(f"OCR extraction error: {e}")
+        print(f"OCR extraction error: {e}", flush=True)
 
     return None
 
@@ -66,11 +110,15 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
 
         # Crop to top region where topic is printed (below sheet ID)
         width, height = img.size
-        crop_box = (0, 0, int(width * 0.5), int(height * 0.2))
+        crop_box = (0, 0, int(width * 0.5), int(height * 0.15))
         top_region = img.crop(crop_box)
 
-        text = pytesseract.image_to_string(top_region, config='--psm 6')
+        # Pre-process for better OCR
+        top_region_processed = _preprocess_for_ocr(top_region)
+
+        text = pytesseract.image_to_string(top_region_processed, config='--psm 6')
         text_lower = text.lower()
+        print(f"OCR topic text: '{text_lower[:100]}'", flush=True)
 
         # Check for topic keywords
         topics = [
@@ -86,14 +134,16 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
             ("dividing", "Division"),
             ("fraction", "Fractions"),
             ("integration", "Integration"),
+            ("factori", "Factorisation"),  # Match factorisation/factorization
         ]
 
         for keyword, topic in topics:
             if keyword in text_lower:
+                print(f"OCR found topic: {topic}", flush=True)
                 return topic
 
     except Exception as e:
-        print(f"OCR topic extraction error: {e}")
+        print(f"OCR topic extraction error: {e}", flush=True)
 
     return None
 
