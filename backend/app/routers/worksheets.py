@@ -383,7 +383,7 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
             ))
             continue
 
-        # No sheet_id in filename - do quick text-layer check (fast, no OCR)
+        # No sheet_id in filename - extract from PDF text layer (fast, no OCR)
         try:
             import fitz
             pdf_bytes = service.download_file_bytes(f.id)
@@ -394,13 +394,26 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
             is_kumon = "KUMON" in text
             print(f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}")
 
+            # Extract sheet_id from text layer (e.g., "D166A", "B 161", "C26 a")
+            text_sheet_id = None
+            if is_kumon:
+                # Look for sheet ID pattern: Letter + digits + optional a/b
+                # Handle spaces that might be in scanned text
+                sheet_match = re.search(r'\b([A-Z])\s*(\d{1,3})\s*([AB])?\b', text)
+                if sheet_match:
+                    letter = sheet_match.group(1)
+                    number = sheet_match.group(2)
+                    suffix = sheet_match.group(3) or ""
+                    text_sheet_id = f"{letter}{number}{suffix}"
+                    print(f"Extracted sheet_id from text layer: {text_sheet_id}")
+
             validated_files.append(GDriveFile(
                 id=f.id,
                 name=f.name,
                 created_time=f.created_time,
                 size=f.size,
                 is_kumon=is_kumon,
-                sheet_id=None,  # Will be extracted when marking
+                sheet_id=text_sheet_id,
                 student_name=None,
             ))
         except Exception as e:
