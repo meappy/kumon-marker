@@ -12,24 +12,10 @@ from app.models.schemas import ValidationResult
 
 
 def _preprocess_for_ocr(img: Image.Image) -> Image.Image:
-    """Pre-process image for better OCR accuracy."""
-    from PIL import ImageEnhance, ImageFilter
-
-    # Convert to grayscale
+    """Pre-process image for better OCR accuracy (lightweight version)."""
+    # Just convert to grayscale - minimal overhead
     if img.mode != 'L':
         img = img.convert('L')
-
-    # Increase contrast
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(2.0)
-
-    # Apply slight sharpening
-    img = img.filter(ImageFilter.SHARPEN)
-
-    # Binarize (threshold) - helps with scanned documents
-    threshold = 180
-    img = img.point(lambda x: 255 if x > threshold else 0, 'L')
-
     return img
 
 
