@@ -5,6 +5,15 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
+# Map legacy CLAUDE_MODE values to new vision_provider names
+_LEGACY_MODE_MAP = {
+    "ollama": "ollama",
+    "gemini": "gemini",
+    "api": "anthropic",
+    "cli": "anthropic",  # CLI removed — fall back to Anthropic API
+}
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
@@ -14,21 +23,36 @@ class Settings(BaseSettings):
     image_tag: str = "local"  # Container image tag, set by IMAGE_TAG env var
     debug: bool = False
 
-    # Analysis mode: "ollama" (recommended), "gemini", "api" (Anthropic), or "cli" (Claude Code CLI)
-    claude_mode: str = "ollama"
-    claude_model: str = "claude-sonnet-4-20250514"  # Model for Claude Code CLI
+    # Vision provider for worksheet marking: "ollama", "anthropic", "gemini", "openai"
+    vision_provider: str = "ollama"
 
-    # Ollama (only used when claude_mode="ollama") - local LLM, no rate limits
+    # Backwards compat: CLAUDE_MODE env var still works
+    claude_mode: str = ""  # Deprecated — use VISION_PROVIDER instead
+
+    # Ollama (local LLM, no rate limits)
     ollama_base_url: str = "http://host.docker.internal:11434"
     ollama_model: str = "moondream"
 
-    # Anthropic (only used when claude_mode="api")
+    # Anthropic (supports both API keys and OAuth session tokens)
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
 
-    # Google Gemini (only used when claude_mode="gemini")
+    # Google Gemini
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
+
+    # OpenAI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o"
+
+    # Validation method for checking if a PDF is a Kumon worksheet:
+    # "ocr" = Tesseract OCR (fast, free, no API cost)
+    # "llm" = Use a vision provider (more robust for scanned/image-only PDFs)
+    validation_method: str = "ocr"
+
+    # Provider for LLM-based validation (if validation_method="llm").
+    # Empty string = use the same provider as vision_provider.
+    validation_provider: str = ""
 
     # Google OAuth (from Helm/env vars)
     google_client_id: str = ""
@@ -73,6 +97,13 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Backwards compat: if CLAUDE_MODE is set but VISION_PROVIDER is not,
+# map the old mode name to the new provider name.
+if settings.claude_mode and settings.vision_provider == "ollama":
+    mapped = _LEGACY_MODE_MAP.get(settings.claude_mode)
+    if mapped:
+        settings.vision_provider = mapped
+
 
 def get_runtime_settings_path() -> Path:
     """Get path to runtime settings file."""
@@ -98,8 +129,18 @@ def save_runtime_settings(data: dict) -> None:
 
 
 def get_effective_setting(key: str, default=None):
-    """Get effective setting value (runtime override > env > default)."""
+    """Get effective setting value (runtime override > env > default).
+
+    Also handles backwards-compat mapping for legacy setting names.
+    """
     runtime = get_runtime_settings()
     if key in runtime:
         return runtime[key]
+
+    # Map legacy keys
+    if key == "vision_provider":
+        # Check runtime for old key too
+        if "claude_mode" in runtime:
+            return _LEGACY_MODE_MAP.get(runtime["claude_mode"], runtime["claude_mode"])
+
     return getattr(settings, key, default)
