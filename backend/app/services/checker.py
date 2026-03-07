@@ -1,4 +1,9 @@
-"""Worksheet validation service."""
+"""Worksheet validation service.
+
+Supports two validation methods (configurable via VALIDATION_METHOD):
+- "ocr": Tesseract OCR for sheet ID extraction (fast, free, default)
+- "llm": Vision provider for sheet ID extraction (more robust for scanned PDFs)
+"""
 
 import io
 import re
@@ -9,37 +14,26 @@ import pytesseract
 from PIL import Image
 
 from app.models.schemas import ValidationResult
+from app.core.config import get_effective_setting
 
 
 def _preprocess_for_ocr(img: Image.Image) -> Image.Image:
-    """Pre-process image for better OCR accuracy (lightweight version)."""
-    # Just convert to grayscale - minimal overhead
+    """Pre-process image for better OCR accuracy."""
     if img.mode != 'L':
         img = img.convert('L')
     return img
 
 
 def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
-    """
-    Extract sheet ID from image using Tesseract OCR.
-    Focuses on top-left region where sheet ID is printed (e.g., "D166a").
-    Returns normalized sheet ID or None if not found.
-    """
+    """Extract sheet ID from image using Tesseract OCR."""
     try:
-        # Load image
         img = Image.open(io.BytesIO(image_bytes))
 
-        # Crop to top-left region (larger area to capture sheet ID reliably)
-        # Sheet ID is typically in top-left corner
         width, height = img.size
         crop_box = (0, 0, int(width * 0.3), int(height * 0.12))
         top_left = img.crop(crop_box)
-
-        # Pre-process for better OCR
         top_left_processed = _preprocess_for_ocr(top_left)
 
-        # Run OCR with optimised config for single line/word
-        # --psm 7 = treat image as a single line of text
         text = pytesseract.image_to_string(
             top_left_processed,
             config='--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab'
@@ -47,18 +41,14 @@ def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
         text_upper = text.upper().strip()
         print(f"OCR raw text (top-left): '{text_upper}'", flush=True)
 
-        # Extract sheet ID pattern: Letter + 1-3 digits + optional a/b
-        # E.g., "D166A", "B161", "C26A"
         match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
         if match:
-            # Normalize: remove spaces
             sheet_id = re.sub(r'\s+', '', match.group(1))
             print(f"OCR matched sheet_id: '{sheet_id}'", flush=True)
-            # Validate format
             if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
                 return sheet_id
 
-        # If not found, try with different PSM mode (block of text)
+        # Try with different PSM mode
         text = pytesseract.image_to_string(top_left_processed, config='--psm 6')
         text_upper = text.upper()
         print(f"OCR raw text (psm 6): '{text_upper[:100]}'", flush=True)
@@ -69,7 +59,7 @@ def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
             if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
                 return sheet_id
 
-        # Last resort: try full image
+        # Last resort: full image
         img_processed = _preprocess_for_ocr(img)
         text = pytesseract.image_to_string(img_processed, config='--psm 6')
         text_upper = text.upper()
@@ -87,26 +77,18 @@ def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
 
 
 def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
-    """
-    Extract topic from image using Tesseract OCR.
-    Looks for keywords like "Reduction", "Addition", etc.
-    """
+    """Extract topic from image using Tesseract OCR."""
     try:
         img = Image.open(io.BytesIO(image_bytes))
-
-        # Crop to top region where topic is printed (below sheet ID)
         width, height = img.size
         crop_box = (0, 0, int(width * 0.5), int(height * 0.15))
         top_region = img.crop(crop_box)
-
-        # Pre-process for better OCR
         top_region_processed = _preprocess_for_ocr(top_region)
 
         text = pytesseract.image_to_string(top_region_processed, config='--psm 6')
         text_lower = text.lower()
         print(f"OCR topic text: '{text_lower[:100]}'", flush=True)
 
-        # Check for topic keywords
         topics = [
             ("reduction", "Reduction"),
             ("reduce", "Reduction"),
@@ -120,7 +102,7 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
             ("dividing", "Division"),
             ("fraction", "Fractions"),
             ("integration", "Integration"),
-            ("factori", "Factorisation"),  # Match factorisation/factorization
+            ("factori", "Factorisation"),
         ]
 
         for keyword, topic in topics:
@@ -134,14 +116,33 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
     return None
 
 
-def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
-    """
-    Validate a scanned worksheet using vision model.
-    Used as fallback when text extraction fails (image-only PDFs).
-    """
-    from app.core.config import get_effective_setting
+def _detect_topic_from_text(text: str) -> str | None:
+    """Detect topic from text keywords."""
+    text_lower = text.lower()
+    if "subtraction" in text_lower or "subtracting" in text_lower:
+        return "Subtraction"
+    elif "addition" in text_lower or "adding" in text_lower:
+        return "Addition"
+    elif "multiplication" in text_lower or "multiply" in text_lower:
+        return "Multiplication"
+    elif "division" in text_lower or "dividing" in text_lower:
+        return "Division"
+    elif "reduction" in text_lower or "reduce" in text_lower:
+        return "Reduction"
+    elif "fraction" in text_lower:
+        return "Fractions"
+    elif "integration" in text_lower:
+        return "Integration"
+    return None
 
-    mode = get_effective_setting("claude_mode", "ollama")
+
+def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
+    """Validate a scanned worksheet using a vision provider.
+
+    Used as fallback when text extraction fails (image-only PDFs),
+    or as the primary method when validation_method="llm".
+    """
+    from app.services.providers import get_validation_provider, parse_json_response
 
     prompt = """Look at this image and determine if it's a Kumon worksheet.
 
@@ -159,14 +160,10 @@ If it is NOT a Kumon worksheet, respond with:
 Only respond with the JSON, nothing else."""
 
     try:
-        if mode == "gemini":
-            result = _vision_validate_gemini(image_bytes, prompt)
-        elif mode == "ollama":
-            result = _vision_validate_ollama(image_bytes, prompt)
-        elif mode == "api":
-            result = _vision_validate_api(image_bytes, prompt)
-        else:  # cli
-            result = _vision_validate_cli(image_bytes, prompt)
+        provider = get_validation_provider()
+        output = provider.analyse_image(image_bytes, prompt)
+        print(f"Vision validation output (first 200 chars): {output[:200]}", flush=True)
+        result = parse_json_response(output)
 
         if result and result.get("is_kumon"):
             return ValidationResult(
@@ -182,121 +179,20 @@ Only respond with the JSON, nothing else."""
     return ValidationResult(is_kumon=False)
 
 
-def _parse_vision_response(text: str) -> dict | None:
-    """Parse JSON from vision model response."""
-    import json
-    # Try to extract JSON from response
-    text = text.strip()
-    # Handle markdown code blocks
-    if "```" in text:
-        match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-        if match:
-            text = match.group(1)
-    # Find JSON object
-    match = re.search(r'\{[^{}]*\}', text)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-    return None
-
-
-def _vision_validate_gemini(image_bytes: bytes, prompt: str) -> dict | None:
-    """Validate using Gemini vision."""
-    from google import genai
-    from PIL import Image
-    from io import BytesIO
-    from app.core.config import get_effective_setting
-
-    api_key = get_effective_setting("gemini_api_key", "")
-    model = get_effective_setting("gemini_model", "gemini-2.0-flash")
-
-    if not api_key:
-        return None
-
-    client = genai.Client(api_key=api_key)
-    image = Image.open(BytesIO(image_bytes))
-    response = client.models.generate_content(model=model, contents=[prompt, image])
-    return _parse_vision_response(response.text)
-
-
-def _vision_validate_ollama(image_bytes: bytes, prompt: str) -> dict | None:
-    """Validate using Ollama vision."""
-    import base64
-    import httpx
-    from app.core.config import get_effective_setting
-
-    base_url = get_effective_setting("ollama_base_url", "http://localhost:11434")
-    model = get_effective_setting("ollama_model", "llava:7b")
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    with httpx.Client(timeout=60.0) as client:
-        response = client.post(
-            f"{base_url}/api/generate",
-            json={"model": model, "prompt": prompt, "images": [image_b64], "stream": False},
-        )
-        response.raise_for_status()
-        return _parse_vision_response(response.json().get("response", ""))
-
-
-def _vision_validate_api(image_bytes: bytes, prompt: str) -> dict | None:
-    """Validate using Anthropic API."""
-    import base64
-    import anthropic
-    from app.core.config import get_effective_setting
-
-    api_key = get_effective_setting("anthropic_api_key", "")
-    model = get_effective_setting("anthropic_model", "claude-haiku-3-5-20241022")
-
-    if not api_key:
-        return None
-
-    client = anthropic.Anthropic(api_key=api_key)
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    response = client.messages.create(
-        model=model,
-        max_tokens=256,
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": image_b64}},
-                {"type": "text", "text": prompt}
-            ]
-        }]
-    )
-    return _parse_vision_response(response.content[0].text)
-
-
-def _vision_validate_cli(image_bytes: bytes, prompt: str) -> dict | None:
-    """Validate using Claude CLI - uses shared function from ocr.py."""
-    from app.services.ocr import run_claude_cli
-
-    output = run_claude_cli(prompt, image_bytes)
-    if output:
-        print(f"Claude CLI output (first 200 chars): {output[:200]}", flush=True)
-        return _parse_vision_response(output)
-    return None
-
-
 def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> ValidationResult:
-    """
-    Validate that PDF bytes represent a Kumon worksheet.
-    First tries text extraction, falls back to vision model for scanned PDFs.
+    """Validate that PDF bytes represent a Kumon worksheet.
+
+    First tries text extraction, falls back to configured validation method.
     """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         text = doc[0].get_text()
         text_upper = text.upper()
 
-        # Convert first page to image (needed for vision fallback and name extraction)
         pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
         image_bytes = pix.tobytes("png")
         doc.close()
 
-        # If no text found (scanned PDF), use vision model directly
-        # (Tesseract OCR is unreliable for sheet ID extraction from scanned worksheets)
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
                 print("No text layer found, using vision model for validation...")
@@ -317,30 +213,11 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
             except Exception as e:
                 print(f"Name extraction error: {e}")
 
-        # Detect subject/topic from keywords
-        subject = "maths"
-        topic = None
-        text_lower = text.lower()
-        if "subtraction" in text_lower or "subtracting" in text_lower:
-            topic = "Subtraction"
-        elif "addition" in text_lower or "adding" in text_lower:
-            topic = "Addition"
-        elif "multiplication" in text_lower or "multiply" in text_lower:
-            topic = "Multiplication"
-        elif "division" in text_lower or "dividing" in text_lower:
-            topic = "Division"
-        elif "reduction" in text_lower or "reduce" in text_lower:
-            topic = "Reduction"
-        elif "fraction" in text_lower:
-            topic = "Fractions"
-        elif "integration" in text_lower:
-            topic = "Integration"
-
         return ValidationResult(
             is_kumon=True,
             sheet_id=sheet_id,
-            subject=subject,
-            topic=topic,
+            subject="maths",
+            topic=_detect_topic_from_text(text),
             student_name=student_name,
         )
 
@@ -350,24 +227,33 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
 
 
 def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
+    """Validate that a PDF is a Kumon worksheet.
+
+    Respects the validation_method setting:
+    - "ocr": Text layer -> Tesseract OCR -> vision fallback
+    - "llm": Text layer -> vision provider directly (skips OCR)
     """
-    Validate that a PDF is a Kumon worksheet.
-    First tries text extraction, falls back to vision model for scanned PDFs.
-    """
+    validation_method = get_effective_setting("validation_method", "ocr")
+
     try:
         doc = fitz.open(pdf_path)
         text = doc[0].get_text()
         text_upper = text.upper()
 
-        # If no text found (scanned PDF), try OCR first, then vision model
+        # If no text layer or no KUMON keyword, use configured fallback
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
-                print("No text layer found, trying OCR extraction...")
+                print("No text layer found...")
             pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
             image_bytes = pix.tobytes("png")
             doc.close()
 
-            # Try OCR first (faster, no API cost)
+            if validation_method == "llm":
+                print("Using LLM vision provider for validation...")
+                return _validate_with_vision(image_bytes)
+
+            # OCR method: try Tesseract first, then vision fallback
+            print("Trying OCR extraction...")
             ocr_sheet_id = _extract_sheet_id_with_ocr(image_bytes)
             ocr_topic = _extract_topic_with_ocr(image_bytes)
 
@@ -390,30 +276,11 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         sheet_match = re.search(r'\b([A-Z]\s*\d+\s*[ab]?)\b', text_upper)
         sheet_id = re.sub(r'\s+', '', sheet_match.group(1)) if sheet_match else None
 
-        # Detect subject/topic from keywords
-        subject = "maths"
-        topic = None
-        text_lower = text.lower()
-        if "subtraction" in text_lower or "subtracting" in text_lower:
-            topic = "Subtraction"
-        elif "addition" in text_lower or "adding" in text_lower:
-            topic = "Addition"
-        elif "multiplication" in text_lower or "multiply" in text_lower:
-            topic = "Multiplication"
-        elif "division" in text_lower or "dividing" in text_lower:
-            topic = "Division"
-        elif "reduction" in text_lower or "reduce" in text_lower:
-            topic = "Reduction"
-        elif "fraction" in text_lower:
-            topic = "Fractions"
-        elif "integration" in text_lower:
-            topic = "Integration"
-
         return ValidationResult(
             is_kumon=True,
             sheet_id=sheet_id,
-            subject=subject,
-            topic=topic,
+            subject="maths",
+            topic=_detect_topic_from_text(text),
         )
 
     except Exception as e:
