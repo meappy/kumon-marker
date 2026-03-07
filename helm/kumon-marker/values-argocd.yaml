@@ -15,6 +15,15 @@ service:
   port: 8000
   nodePort: 30080
 
+ingress:
+  enabled: true
+  className: "traefik"
+  hosts:
+    - host: kumon.meappy.me
+      paths:
+        - path: /
+          pathType: Prefix
+
 persistence:
   enabled: true
   size: 5Gi
