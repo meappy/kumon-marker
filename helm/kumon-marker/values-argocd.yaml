@@ -32,23 +32,30 @@ resources:
     memory: 2Gi
 
 config:
-  claude:
-    mode: "api"
-    model: "claude-sonnet-4-20250514"
-    # credentials loaded from existingSecret
+  visionProvider: "anthropic"
+  validationMethod: "ocr"
+
   worksheet:
     questionsPerPage: 10
     customPrompt: ""
+
   ollama:
     baseUrl: "http://10.1.1.236:11434"
     model: "llava:7b"
+
   anthropic:
     apiKey: true  # Read from existingSecret (key: anthropic-api-key)
     model: "claude-sonnet-4-20250514"
+
   gemini:
     model: "gemini-2.0-flash"
+
+  openai:
+    model: "gpt-4o"
+
   googleDrive:
     folder: "From_BrotherDevice"
+
   auth:
     allowedUsers:
       - "meappy@gmail.com"
