@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Pre-commit hook: runs the same checks as CI (ruff lint/format, helm lint)
+# Install: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+# ── Enforce branch naming ─────────────────────────────────────────────────────
+# Must match CI trigger patterns: feat/, feature/, fix/
+# main and dev are protected (no direct commits)
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then
+    echo "pre-commit: direct commits to $BRANCH are not allowed. Use a feature branch and PR."
+    echo "  git checkout -b feat/my-change"
+    exit 1
+fi
+
+if ! echo "$BRANCH" | grep -qE '^(feat|feature|fix)/'; then
+    echo "pre-commit: branch '$BRANCH' doesn't match required pattern."
+    echo "  Branch must start with: feat/, feature/, or fix/"
+    echo "  Example: git checkout -b feat/my-change"
+    exit 1
+fi
+
+# ── Ruff (Python backend) ────────────────────────────────────────────────────
+
+# Get staged .py files under backend/app/
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM -- 'backend/app/*.py' 'backend/app/**/*.py')
+
+if [ -n "$STAGED_PY" ]; then
+    if ! command -v ruff &>/dev/null; then
+        echo "pre-commit: ruff not found, skipping Python checks"
+    else
+        echo "pre-commit: ruff check & format on staged Python files..."
+
+        # Auto-fix lint issues and re-format
+        echo "$STAGED_PY" | xargs ruff check --fix --quiet
+        echo "$STAGED_PY" | xargs ruff format --quiet
+
+        # Re-stage any auto-fixed files
+        echo "$STAGED_PY" | xargs git add
+    fi
+fi
+
+# ── Helm lint ─────────────────────────────────────────────────────────────────
+
+STAGED_HELM=$(git diff --cached --name-only --diff-filter=ACM -- 'helm/**')
+
+if [ -n "$STAGED_HELM" ]; then
+    if ! command -v helm &>/dev/null; then
+        echo "pre-commit: helm not found, skipping Helm lint"
+    else
+        echo "pre-commit: helm lint..."
+        helm lint helm/kumon-marker --quiet
+    fi
+fi
