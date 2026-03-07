@@ -55,3 +55,6 @@ archive/
 prototype_*.py
 test_*.png
 backend/uv.lock
+
+# OpenCode Swarm state (ephemeral project state)
+.swarm/

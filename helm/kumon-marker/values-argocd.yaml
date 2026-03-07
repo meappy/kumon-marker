@@ -1,9 +1,6 @@
 # Production values for Argo CD deployment
 # This file is tracked in git - NO SECRETS HERE
-# Secrets are stored in Kubernetes Secret: kumon-marker-secrets
-
-# Use existing K8s secret instead of creating from values
-existingSecret: "kumon-marker-secrets"
+# Secrets are supplied by the kumon-marker-secrets repo via ArgoCD multi-source
 
 image:
   repository: ghcr.io/meappy/kumon-marker
@@ -33,7 +30,7 @@ resources:
 
 config:
   visionProvider: "anthropic"
-  validationMethod: "ocr"
+  validationMethod: "llm"
 
   worksheet:
     questionsPerPage: 10
@@ -44,7 +41,7 @@ config:
     model: "llava:7b"
 
   anthropic:
-    apiKey: true  # Read from existingSecret (key: anthropic-api-key)
+    apiKey: true  # Actual key supplied by kumon-marker-secrets repo
     model: "claude-sonnet-4-20250514"
 
   gemini:
@@ -65,12 +62,12 @@ config:
 # RabbitMQ configuration
 rabbitmq:
   enabled: true
-  # password loaded from existingSecret
+  # password supplied by kumon-marker-secrets repo
 
 # PostgreSQL configuration
 postgresql:
   enabled: true
-  # password loaded from existingSecret
+  # password supplied by kumon-marker-secrets repo
 
 # Worker configuration
 worker:

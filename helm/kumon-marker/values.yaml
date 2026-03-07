@@ -2,9 +2,21 @@
 
 replicaCount: 1
 
-# Use existing secret instead of creating one from values
-# If set, secrets are read from this K8s secret instead of config values
+# Use an existing K8s secret (e.g. "kumon-marker-secrets" created manually)
+# When set, Helm will NOT create a Secret — it reads from this one instead
 existingSecret: ""
+
+# Inline secrets — used when existingSecret is empty
+# These can be supplied via a separate values file (e.g. from a secrets repo)
+secrets:
+  anthropicApiKey: ""
+  geminiApiKey: ""
+  openaiApiKey: ""
+  googleClientId: ""
+  googleClientSecret: ""
+  sessionSecret: ""
+  rabbitmqPassword: ""
+  postgresqlPassword: ""
 
 image:
   repository: ghcr.io/meappy/kumon-marker
