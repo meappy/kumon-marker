@@ -24,27 +24,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
-      initContainers:
-        - name: setup-claude-credentials
-          image: busybox:latest
-          command:
-            - sh
-            - -c
-            - |
-              mkdir -p /claude-home/.claude
-              echo "$CLAUDE_CREDENTIALS" > /claude-home/.claude/.credentials.json
-              chmod 600 /claude-home/.claude/.credentials.json
-          env:
-            - name: CLAUDE_CREDENTIALS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "kumon-marker.secretName" . }}
-                  key: claude-credentials
-          volumeMounts:
-            - name: claude-home
-              mountPath: /claude-home
-      {{- end }}
       containers:
         - name: worker
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -53,15 +32,21 @@ spec:
           env:
             - name: APP_VERSION
               value: {{ .Chart.AppVersion | quote }}
-            # Claude/LLM configuration
-            - name: CLAUDE_MODE
-              value: {{ .Values.config.claude.mode | quote }}
-            - name: CLAUDE_MODEL
-              value: {{ .Values.config.claude.model | quote }}
+            # Vision provider configuration
+            - name: VISION_PROVIDER
+              value: {{ .Values.config.visionProvider | quote }}
+            - name: VALIDATION_METHOD
+              value: {{ .Values.config.validationMethod | default "ocr" | quote }}
+            {{- if .Values.config.validationProvider }}
+            - name: VALIDATION_PROVIDER
+              value: {{ .Values.config.validationProvider | quote }}
+            {{- end }}
+            # Ollama
             - name: OLLAMA_BASE_URL
               value: {{ .Values.config.ollama.baseUrl | quote }}
             - name: OLLAMA_MODEL
               value: {{ .Values.config.ollama.model | quote }}
+            # Anthropic
             {{- if .Values.config.anthropic.apiKey }}
             - name: ANTHROPIC_API_KEY
               valueFrom:
@@ -72,6 +57,7 @@ spec:
             {{- end }}
             - name: ANTHROPIC_MODEL
               value: {{ .Values.config.anthropic.model | quote }}
+            # Gemini
             {{- if .Values.config.gemini.apiKey }}
             - name: GEMINI_API_KEY
               valueFrom:
@@ -82,6 +68,19 @@ spec:
             {{- end }}
             - name: GEMINI_MODEL
               value: {{ .Values.config.gemini.model | quote }}
+            # OpenAI
+            {{- if .Values.config.openai }}
+            {{- if .Values.config.openai.apiKey }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kumon-marker.secretName" . }}
+                  key: openai-api-key
+                  optional: true
+            {{- end }}
+            - name: OPENAI_MODEL
+              value: {{ .Values.config.openai.model | default "gpt-4o" | quote }}
+            {{- end }}
             # Worksheet settings
             - name: QUESTIONS_PER_PAGE
               value: {{ .Values.config.worksheet.questionsPerPage | quote }}
@@ -92,7 +91,7 @@ spec:
             # Data directory
             - name: DATA_DIR
               value: /app/data
-            # RabbitMQ connection - password must be defined before URL for substitution
+            # RabbitMQ connection
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -101,7 +100,7 @@ spec:
                   optional: true
             - name: RABBITMQ_URL
               value: "amqp://{{ .Values.rabbitmq.username }}:$(RABBITMQ_PASSWORD)@{{ include "kumon-marker.fullname" . }}-rabbitmq:{{ .Values.rabbitmq.port }}/"
-            # PostgreSQL connection - password must be defined before URL for substitution
+            # PostgreSQL connection
             - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -110,17 +109,9 @@ spec:
                   optional: true
             - name: DATABASE_URL
               value: "postgresql://{{ .Values.postgresql.username }}:$(POSTGRESQL_PASSWORD)@{{ include "kumon-marker.fullname" . }}-postgresql:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
-            {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
-            - name: HOME
-              value: /claude-home
-            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /app/data
-            {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
-            - name: claude-home
-              mountPath: /claude-home
-            {{- end }}
           resources:
             {{- toYaml .Values.worker.resources | nindent 12 }}
       volumes:
@@ -131,10 +122,6 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        {{- if and (eq .Values.config.claude.mode "cli") .Values.config.claude.credentials }}
-        - name: claude-home
-          emptyDir: {}
-        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
