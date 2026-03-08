@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/meappy/kumon-marker/compare/v1.0.1...v1.0.2) (2026-03-08)
+
+
+### Bug Fixes
+
+* replace emoji placeholders with actual logo branding ([#20](https://github.com/meappy/kumon-marker/issues/20)) ([aafd427](https://github.com/meappy/kumon-marker/commit/aafd427cff93bd8fb5a255488c2f995d0db938d5))
+
 ## [1.0.1](https://github.com/meappy/kumon-marker/compare/v1.0.0...v1.0.1) (2026-03-08)
 
 
