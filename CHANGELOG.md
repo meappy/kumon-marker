@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/meappy/kumon-marker/compare/v1.0.2...v1.0.3) (2026-03-08)
+
+
+### Bug Fixes
+
+* unify branding with consistent SVG logo across all assets ([#21](https://github.com/meappy/kumon-marker/issues/21)) ([36afe3c](https://github.com/meappy/kumon-marker/commit/36afe3c90b38db9c46aab9dc17177a2c53d6a429))
+
 ## [1.0.2](https://github.com/meappy/kumon-marker/compare/v1.0.1...v1.0.2) (2026-03-08)
 
 
