@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/meappy/kumon-marker/compare/v1.0.0...v1.0.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* update image tag to 1.0.4 with correct branding ([#26](https://github.com/meappy/kumon-marker/issues/26)) ([585cf77](https://github.com/meappy/kumon-marker/commit/585cf779df05d10066cbb68c7a4fdba53547b57c))
+
 # 1.0.0 (2026-03-08)
 
 
