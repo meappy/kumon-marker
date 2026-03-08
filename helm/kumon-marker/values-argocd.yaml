@@ -1,6 +1,6 @@
 # Production values for Argo CD deployment
 # This file is tracked in git - NO SECRETS HERE
-# Secrets are supplied by the kumon-marker-secrets repo via ArgoCD multi-source
+# Secrets are supplied by the private secrets repo via ArgoCD multi-source
 
 image:
   repository: ghcr.io/meappy/kumon-marker
@@ -17,7 +17,7 @@ service:
 
 ingress:
   enabled: true
-  # host and className supplied by kumon-marker-secrets repo
+  # host and className supplied by private secrets repo
 
 persistence:
   enabled: true
@@ -41,11 +41,11 @@ config:
     customPrompt: ""
 
   ollama:
-    # baseUrl supplied by kumon-marker-secrets repo
+    # baseUrl supplied by private secrets repo
     model: "llava:7b"
 
   anthropic:
-    apiKey: true  # Actual key supplied by kumon-marker-secrets repo
+    apiKey: true  # Actual key supplied by private secrets repo
     model: "claude-opus-4-6"
 
   gemini:
@@ -58,17 +58,17 @@ config:
     folder: "From_BrotherDevice"
 
   auth:
-    allowedUsers: []  # Supplied by kumon-marker-secrets repo
+    allowedUsers: []  # Supplied by private secrets repo
 
 # RabbitMQ configuration
 rabbitmq:
   enabled: true
-  # password supplied by kumon-marker-secrets repo
+  # password supplied by private secrets repo
 
 # PostgreSQL configuration
 postgresql:
   enabled: true
-  # password supplied by kumon-marker-secrets repo
+  # password supplied by private secrets repo
 
 # Worker configuration
 worker:
