@@ -17,12 +17,7 @@ service:
 
 ingress:
   enabled: true
-  className: "traefik"
-  hosts:
-    - host: kumon.meappy.me
-      paths:
-        - path: /
-          pathType: Prefix
+  # host and className supplied by kumon-marker-secrets repo
 
 persistence:
   enabled: true
@@ -46,7 +41,7 @@ config:
     customPrompt: ""
 
   ollama:
-    baseUrl: "http://10.1.1.236:11434"
+    # baseUrl supplied by kumon-marker-secrets repo
     model: "llava:7b"
 
   anthropic:
