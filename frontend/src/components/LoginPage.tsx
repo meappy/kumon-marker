@@ -23,7 +23,7 @@ export function LoginPage({ error }: LoginPageProps) {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full mx-4">
         <div className="text-center">
-          <div className="text-4xl mb-4">📝</div>
+          <img src="/logo.png" alt="Kumon Marker" className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Kumon Marker</h1>
           <p className="text-gray-600 mb-6">
             Sign in to mark and track Kumon worksheets
