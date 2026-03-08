@@ -187,6 +187,10 @@ docker build -t ghcr.io/meappy/kumon-marker:latest .
 | GET | `/api/jobs/status` | Get job queue status |
 | DELETE | `/api/jobs/{id}` | Cancel a job |
 
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to fork, set up your environment, and submit a pull request.
+
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
