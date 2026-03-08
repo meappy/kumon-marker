@@ -8,6 +8,7 @@ from app.core.config import (
     get_runtime_settings,
     save_runtime_settings,
 )
+from app.services.providers import PROVIDERS
 
 router = APIRouter()
 
@@ -27,18 +28,31 @@ class VersionInfo(BaseModel):
 
 class AppSettings(BaseModel):
     """All application settings."""
+    vision_provider: SettingValue
+    available_providers: list[str]
     anthropic_api_key: SettingValue
     anthropic_model: SettingValue
+    gemini_model: SettingValue
+    openai_model: SettingValue
+    ollama_model: SettingValue
+    validation_method: SettingValue
+    validation_provider: SettingValue
     gdrive_folder: SettingValue
     timezone: SettingValue
-    google_configured: bool  # Whether OAuth is set up
+    google_configured: bool
     version: VersionInfo
 
 
 class SettingsUpdate(BaseModel):
     """Settings update request."""
+    vision_provider: str | None = None
     anthropic_api_key: str | None = None
     anthropic_model: str | None = None
+    gemini_model: str | None = None
+    openai_model: str | None = None
+    ollama_model: str | None = None
+    validation_method: str | None = None
+    validation_provider: str | None = None
     gdrive_folder: str | None = None
     timezone: str | None = None
 
@@ -78,8 +92,15 @@ def get_setting_with_source(key: str, default: str, mask: bool = False) -> Setti
 async def get_settings():
     """Get current application settings."""
     return AppSettings(
+        vision_provider=get_setting_with_source("vision_provider", settings.vision_provider),
+        available_providers=list(PROVIDERS.keys()),
         anthropic_api_key=get_setting_with_source("anthropic_api_key", settings.anthropic_api_key, mask=True),
         anthropic_model=get_setting_with_source("anthropic_model", settings.anthropic_model),
+        gemini_model=get_setting_with_source("gemini_model", settings.gemini_model),
+        openai_model=get_setting_with_source("openai_model", settings.openai_model),
+        ollama_model=get_setting_with_source("ollama_model", settings.ollama_model),
+        validation_method=get_setting_with_source("validation_method", settings.validation_method),
+        validation_provider=get_setting_with_source("validation_provider", settings.validation_provider),
         gdrive_folder=get_setting_with_source("gdrive_folder", settings.gdrive_folder),
         timezone=get_setting_with_source("timezone", settings.timezone),
         google_configured=bool(settings.google_client_id and settings.google_client_secret),
@@ -90,47 +111,35 @@ async def get_settings():
     )
 
 
+EDITABLE_KEYS = {
+    "vision_provider", "anthropic_api_key", "anthropic_model",
+    "gemini_model", "openai_model", "ollama_model",
+    "validation_method", "validation_provider",
+    "gdrive_folder", "timezone",
+}
+
+
 @router.put("/settings", response_model=AppSettings)
 async def update_settings(update: SettingsUpdate):
     """Update application settings."""
     runtime = get_runtime_settings()
 
-    # Update only provided fields
-    if update.anthropic_api_key is not None:
-        if update.anthropic_api_key:
-            runtime["anthropic_api_key"] = update.anthropic_api_key
-        elif "anthropic_api_key" in runtime:
-            del runtime["anthropic_api_key"]
-
-    if update.anthropic_model is not None:
-        if update.anthropic_model:
-            runtime["anthropic_model"] = update.anthropic_model
-        elif "anthropic_model" in runtime:
-            del runtime["anthropic_model"]
-
-    if update.gdrive_folder is not None:
-        if update.gdrive_folder:
-            runtime["gdrive_folder"] = update.gdrive_folder
-        elif "gdrive_folder" in runtime:
-            del runtime["gdrive_folder"]
-
-    if update.timezone is not None:
-        if update.timezone:
-            runtime["timezone"] = update.timezone
-        elif "timezone" in runtime:
-            del runtime["timezone"]
+    for key in EDITABLE_KEYS:
+        new_value = getattr(update, key, None)
+        if new_value is not None:
+            if new_value:
+                runtime[key] = new_value
+            elif key in runtime:
+                del runtime[key]
 
     save_runtime_settings(runtime)
-
-    # Return updated settings
     return await get_settings()
 
 
 @router.delete("/settings/{key}")
 async def reset_setting(key: str):
     """Reset a setting to default/env value."""
-    valid_keys = {"anthropic_api_key", "anthropic_model", "gdrive_folder", "timezone"}
-    if key not in valid_keys:
+    if key not in EDITABLE_KEYS:
         return {"error": "Invalid setting key"}
 
     runtime = get_runtime_settings()

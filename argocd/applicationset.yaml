@@ -21,21 +21,26 @@ spec:
         - resources-finalizer.argocd.argoproj.io
     spec:
       project: default
-      source:
-        repoURL: https://github.com/meappy/kumon-marker.git
-        targetRevision: '{{ .branch }}'
-        path: helm/kumon-marker
-        helm:
-          releaseName: kumon-marker
-          valueFiles:
-            - values.yaml
-            - values-argocd.yaml
+      sources:
+        # Main chart from kumon-marker (public)
+        - repoURL: https://github.com/meappy/kumon-marker.git
+          targetRevision: '{{ .branch }}'
+          path: helm/kumon-marker
+          helm:
+            releaseName: kumon-marker
+            valueFiles:
+              - values.yaml
+              - values-argocd.yaml
+              - "$secrets/kumon-marker/values-secrets.yaml"
+        # Secrets from kumon-marker-secrets (private)
+        - repoURL: https://github.com/meappy/kumon-marker-secrets.git
+          targetRevision: main
+          ref: secrets
       destination:
         server: https://kubernetes.default.svc
         namespace: kumon-marker
       syncPolicy:
-        automated:
-          prune: true
-          selfHeal: true
+        # Webhook-only: no automated polling (saves GitHub API rate limit)
+        # Manual sync or webhook triggers required
         syncOptions:
           - CreateNamespace=true
