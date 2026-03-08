@@ -1,3 +1,9 @@
+# This is a template. The actual applicationset with real repo URLs
+# is stored in the private secrets repo and applied to the cluster directly.
+#
+# To use: copy this template, fill in the repoURL values, and apply:
+#   kubectl apply -f applicationset.yaml -n argocd
+#
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -22,8 +28,7 @@ spec:
     spec:
       project: default
       sources:
-        # Main chart from kumon-marker (public)
-        - repoURL: https://github.com/meappy/kumon-marker.git
+        - repoURL: https://github.com/OWNER/kumon-marker.git
           targetRevision: '{{ .branch }}'
           path: helm/kumon-marker
           helm:
@@ -32,15 +37,12 @@ spec:
               - values.yaml
               - values-argocd.yaml
               - "$secrets/kumon-marker/values-secrets.yaml"
-        # Secrets from kumon-marker-secrets (private)
-        - repoURL: https://github.com/meappy/kumon-marker-secrets.git
+        - repoURL: https://github.com/OWNER/SECRETS-REPO.git
           targetRevision: main
           ref: secrets
       destination:
         server: https://kubernetes.default.svc
         namespace: kumon-marker
       syncPolicy:
-        # Webhook-only: no automated polling (saves GitHub API rate limit)
-        # Manual sync or webhook triggers required
         syncOptions:
           - CreateNamespace=true
