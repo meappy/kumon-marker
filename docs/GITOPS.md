@@ -226,17 +226,15 @@ helm rollback kumon-marker -n kumon-marker
 
 ## Secrets Management
 
-Sensitive values are stored in Kubernetes Secret `kumon-marker-secrets`, not in git.
+Sensitive values are supplied via a private secrets repository using ArgoCD multi-source, not stored in this repo.
 
-The Helm chart uses `existingSecret` to reference this pre-created secret:
+The Helm chart supports two modes:
+1. **Inline secrets** — supplied via a separate values file (e.g. from a private secrets repo)
+2. **Existing secret** — reference a pre-created Kubernetes Secret via `existingSecret`
+
 ```yaml
 # values-argocd.yaml
-existingSecret: "kumon-marker-secrets"
-```
-
-To update secrets:
-```bash
-kubectl edit secret kumon-marker-secrets -n kumon-marker
+existingSecret: "my-secrets"  # or leave empty to use inline secrets
 ```
 
 ## Troubleshooting

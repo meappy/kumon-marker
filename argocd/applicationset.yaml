@@ -32,8 +32,8 @@ spec:
               - values.yaml
               - values-argocd.yaml
               - "$secrets/kumon-marker/values-secrets.yaml"
-        # Secrets from kumon-marker-secrets (private)
-        - repoURL: https://github.com/meappy/kumon-marker-secrets.git
+        # Secrets from private repo (configure repoURL for your secrets repo)
+        - repoURL: https://github.com/OWNER/SECRETS-REPO.git
           targetRevision: main
           ref: secrets
       destination:
