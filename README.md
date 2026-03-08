@@ -1,19 +1,24 @@
-# Kumon Marker
+<p align="center">
+  <img src="branding/banner.png" alt="Kumon Marker" width="700" />
+</p>
 
-[![Release](https://github.com/meappy/kumon-marker/actions/workflows/release.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/release.yml)
-[![CI](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml/badge.svg)](https://github.com/meappy/kumon-marker/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <a href="https://github.com/meappy/kumon-marker/actions/workflows/release.yml"><img src="https://github.com/meappy/kumon-marker/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <a href="https://github.com/meappy/kumon-marker/actions/workflows/ci.yml"><img src="https://github.com/meappy/kumon-marker/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
 
-Automated marking system for Kumon worksheets using vision AI models.
+Automated marking system for Kumon maths worksheets using pluggable vision AI providers.
 
 ## Features
 
-- **Automatic worksheet marking** - Uses vision AI (Ollama/Gemini/Claude) to analyse and mark worksheets
-- **Google Drive integration** - Sync worksheets directly from Google Drive
-- **Report generation** - Creates detailed PDF reports with scores and corrections
-- **Multi-user support** - Google OAuth authentication with per-user data isolation
-- **Job queue** - RabbitMQ-based queue for reliable background processing
-- **Kubernetes ready** - Helm charts for easy deployment
+- **Automatic worksheet marking** — Uses vision AI (Ollama, Anthropic Claude, Google Gemini, or OpenAI) to analyse and mark worksheets
+- **PDF annotation** — Marks correct pages with green circles, errors with red ticks
+- **Report generation** — Creates detailed PDF reports with scores and corrections
+- **Google Drive integration** — Sync worksheets directly from Google Drive
+- **Multi-user support** — Google OAuth authentication with per-user data isolation
+- **Job queue** — RabbitMQ-based queue for reliable background processing
+- **Kubernetes ready** — Helm charts with Argo CD GitOps deployment
 
 ## Architecture
 
@@ -25,8 +30,8 @@ Automated marking system for Kumon worksheets using vision AI models.
                            │                                       │
                            ▼                                       ▼
                     ┌─────────────┐                         ┌─────────────┐
-                    │ PostgreSQL  │◀────────────────────────│   SQLite    │
-                    │  (Jobs DB)  │                         │  (Updates)  │
+                    │ PostgreSQL  │                         │  Vision AI  │
+                    │  (Jobs DB)  │                         │  Provider   │
                     └─────────────┘                         └─────────────┘
 ```
 
@@ -37,7 +42,7 @@ Automated marking system for Kumon worksheets using vision AI models.
 - Docker and Docker Compose (for local development)
 - Kubernetes cluster with Helm (for production)
 - Google Cloud project with OAuth configured
-- Vision AI backend: Ollama (local), Google Gemini, or Anthropic Claude
+- Vision AI backend: Ollama (local), Google Gemini, Anthropic Claude, or OpenAI
 
 ### Local Development
 
@@ -67,19 +72,11 @@ Automated marking system for Kumon worksheets using vision AI models.
    kubectl create namespace kumon-marker
    ```
 
-2. Create secrets:
-   ```bash
-   kubectl create secret generic kumon-marker-secrets \
-     --from-literal=google-client-id=YOUR_CLIENT_ID \
-     --from-literal=google-client-secret=YOUR_CLIENT_SECRET \
-     --from-literal=session-secret=YOUR_SESSION_SECRET \
-     -n kumon-marker
-   ```
-
-3. Deploy with Helm:
+2. Deploy with Helm:
    ```bash
    helm upgrade --install kumon-marker ./helm/kumon-marker \
      -f ./helm/kumon-marker/values.yaml \
+     -f ./helm/kumon-marker/values-local.yaml \
      -n kumon-marker
    ```
 
@@ -89,11 +86,16 @@ Automated marking system for Kumon worksheets using vision AI models.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CLAUDE_MODE` | AI backend: `ollama`, `gemini`, `api`, `cli` | `ollama` |
+| `VISION_PROVIDER` | AI provider: `ollama`, `anthropic`, `gemini`, `openai` | `ollama` |
+| `VALIDATION_METHOD` | Worksheet validation: `ocr` or `llm` | `ocr` |
 | `OLLAMA_BASE_URL` | Ollama server URL | `http://localhost:11434` |
 | `OLLAMA_MODEL` | Ollama model name | `moondream` |
+| `ANTHROPIC_API_KEY` | Anthropic API key or OAuth token | - |
+| `ANTHROPIC_MODEL` | Anthropic model name | `claude-sonnet-4-20250514` |
 | `GEMINI_API_KEY` | Google Gemini API key | - |
-| `ANTHROPIC_API_KEY` | Anthropic API key | - |
+| `GEMINI_MODEL` | Gemini model name | `gemini-2.0-flash` |
+| `OPENAI_API_KEY` | OpenAI API key | - |
+| `OPENAI_MODEL` | OpenAI model name | `gpt-4o` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | - |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | - |
 | `ALLOWED_USERS` | Comma-separated list of allowed emails | - |
@@ -112,9 +114,9 @@ kumon-marker/
 │   │   ├── core/      # Config, session management
 │   │   ├── models/    # Pydantic schemas, SQLAlchemy models
 │   │   ├── routers/   # API endpoints
-│   │   └── services/  # Business logic (OCR, marking, etc.)
+│   │   └── services/  # Business logic (providers, marking, etc.)
 │   └── pyproject.toml
-├── frontend/          # React frontend
+├── frontend/          # React + Vite + Tailwind CSS
 │   ├── src/
 │   │   ├── api/       # API client
 │   │   ├── components/# React components
@@ -122,9 +124,9 @@ kumon-marker/
 │   └── package.json
 ├── helm/              # Kubernetes Helm charts
 │   └── kumon-marker/
+├── branding/          # Logo, favicon, banner assets
 ├── scripts/           # Development scripts
-│   ├── version.py     # Version management
-│   └── deploy.sh      # Deployment helper
+│   └── version.py     # Version management
 ├── Dockerfile         # Multi-stage Docker build
 └── VERSION            # Current version
 ```
@@ -134,18 +136,16 @@ kumon-marker/
 This project uses **Semantic Release** for automated versioning and **Argo CD** for GitOps deployments.
 
 ```bash
-# Feature branch → builds branch-<name> image
-git checkout -b feature/my-feature
+# Feature branch → builds dev image
+git checkout -b feat/my-feature
 git commit -m "feat: add new feature"
-git push origin feature/my-feature
+git push origin feat/my-feature
 
 # Merge to main → auto version bump + deploy
-# fix: commits → patch (0.2.8 → 0.2.9)
-# feat: commits → minor (0.2.8 → 0.3.0)
-# BREAKING CHANGE: → major (0.2.8 → 1.0.0)
+# fix: commits → patch (0.6.2 → 0.6.3)
+# feat: commits → minor (0.6.2 → 0.7.0)
+# BREAKING CHANGE: → major (0.6.2 → 1.0.0)
 ```
-
-See [docs/GITOPS.md](docs/GITOPS.md) for detailed workflow documentation.
 
 ### Version Management
 
@@ -155,16 +155,10 @@ All version numbers are kept in sync across files:
 # Show current versions
 ./scripts/version.py show
 
-# Bump version (with optional values file for GitOps)
-./scripts/version.py bump patch    # Bug fix: 0.2.4 -> 0.2.5
-./scripts/version.py bump minor    # Feature: 0.2.4 -> 0.3.0
-./scripts/version.py bump major    # Breaking: 0.2.4 -> 1.0.0
-
-# Include Helm values file in version update
-./scripts/version.py --values-file helm/kumon-marker/values-prod.yaml bump patch
-
-# Set specific version
-./scripts/version.py set 1.0.0
+# Bump version
+./scripts/version.py bump patch    # Bug fix
+./scripts/version.py bump minor    # Feature
+./scripts/version.py bump major    # Breaking change
 
 # Sync all files to VERSION
 ./scripts/version.py sync
@@ -175,9 +169,6 @@ All version numbers are kept in sync across files:
 ```bash
 # Build Docker image
 docker build -t ghcr.io/meappy/kumon-marker:latest .
-
-# Build with specific version
-docker build --build-arg VERSION=0.2.4 -t ghcr.io/meappy/kumon-marker:0.2.4 .
 ```
 
 ## API Endpoints
@@ -199,4 +190,3 @@ docker build --build-arg VERSION=0.2.4 -t ghcr.io/meappy/kumon-marker:0.2.4 .
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-# Webhook test Sun 18 Jan 2026 15:05:56 ACDT
