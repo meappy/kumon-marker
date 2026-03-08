@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/meappy/kumon-marker/compare/v1.0.0...v1.0.1) (2026-03-08)
+
+
+### Bug Fixes
+
+* replace banner with dark navy background for dark mode ([aac8a35](https://github.com/meappy/kumon-marker/commit/aac8a35d14f4940d4c45d1006253babd5b9ed4e8))
+
 # 1.0.0 (2026-03-08)
 
 
