@@ -90,9 +90,7 @@ def get_analysis_prompt(sheet_id: str, page_num: int) -> str:
 
     if custom_prompt:
         return custom_prompt.format(
-            sheet_id=sheet_id,
-            page_num=page_num,
-            questions_per_page=questions_per_page
+            sheet_id=sheet_id, page_num=page_num, questions_per_page=questions_per_page
         )
 
     return get_default_prompt(sheet_id, page_num, questions_per_page)
@@ -100,7 +98,7 @@ def get_analysis_prompt(sheet_id: str, page_num: int) -> str:
 
 def get_name_extraction_prompt() -> str:
     """Get prompt for extracting student name from worksheet."""
-    return '''Look at this Kumon worksheet image. Find the "Name" field (usually top right area).
+    return """Look at this Kumon worksheet image. Find the "Name" field (usually top right area).
 
 Read the HANDWRITTEN student name written in the Name field.
 
@@ -110,13 +108,13 @@ Return ONLY a JSON object:
 If you cannot read the name or it's blank, return:
 {"name": null}
 
-ONLY output the JSON, nothing else.'''
+ONLY output the JSON, nothing else."""
 
 
 def extract_name_from_response(output: str) -> str | None:
     """Extract name from vision model response."""
     try:
-        match = re.search(r'\{[\s\S]*\}', output)
+        match = re.search(r"\{[\s\S]*\}", output)
         if match:
             data = json.loads(match.group())
             name = data.get("name")
@@ -140,7 +138,9 @@ def extract_name_with_vision(image_bytes: bytes) -> str | None:
         return None
 
 
-def calculate_tick_position(question_num: int, total_questions: int = 24) -> tuple[float, float]:
+def calculate_tick_position(
+    question_num: int, total_questions: int = 24
+) -> tuple[float, float]:
     """Calculate tick position based on question number for standard Kumon layout."""
     half = total_questions // 2 if total_questions > 12 else total_questions
 
@@ -157,14 +157,18 @@ def calculate_tick_position(question_num: int, total_questions: int = 24) -> tup
 
 def parse_analysis_response(output: str, sheet_id: str, page_num: int) -> PageResult:
     """Parse the JSON response from the vision model."""
-    match = re.search(r'\{[\s\S]*\}', output)
+    match = re.search(r"\{[\s\S]*\}", output)
     if match:
         data = json.loads(match.group())
         total_q = data.get("total_questions", get_questions_per_page())
 
         errors = []
         for e in data.get("errors", []):
-            if "x" not in e or "y" not in e or (e.get("x") == 200 and e.get("y") == 300):
+            if (
+                "x" not in e
+                or "y" not in e
+                or (e.get("x") == 200 and e.get("y") == 300)
+            ):
                 q_num = e.get("q", 1)
                 calc_x, calc_y = calculate_tick_position(q_num, total_q)
                 e["x"] = e.get("x", calc_x) if e.get("x", 200) != 200 else calc_x
@@ -228,10 +232,12 @@ def analyse_worksheet(
     ]
 
     provider_name = get_effective_setting("vision_provider", "ollama")
-    print(f"Using vision provider: {provider_name}")
+    model_key = f"{provider_name}_model"
+    model_name = get_effective_setting(model_key, "unknown")
+    print(f"Using vision provider: {provider_name} (model: {model_name})")
 
     # Gemini rate limiting: free tier is 15 req/min
-    needs_rate_limit = (provider_name == "gemini")
+    needs_rate_limit = provider_name == "gemini"
 
     results = []
     for i, sheet_id in enumerate(sheet_ids):
