@@ -63,10 +63,7 @@ config:
     folder: "From_BrotherDevice"
 
   auth:
-    allowedUsers:
-      - "meappy@gmail.com"
-      - "gerald@meappy.com"
-      - "christopher.xj.wong@gmail.com"
+    allowedUsers: []  # Supplied by kumon-marker-secrets repo
 
 # RabbitMQ configuration
 rabbitmq:
