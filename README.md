@@ -3,9 +3,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/meappy/kumon-marker/actions/workflows/release.yml"><img src="https://github.com/meappy/kumon-marker/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <a href="https://github.com/meappy/kumon-marker/releases/latest"><img src="https://img.shields.io/github/v/release/meappy/kumon-marker" alt="Release" /></a>
   <a href="https://github.com/meappy/kumon-marker/actions/workflows/ci.yml"><img src="https://github.com/meappy/kumon-marker/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/meappy/kumon-marker/stargazers"><img src="https://img.shields.io/github/stars/meappy/kumon-marker" alt="Stars" /></a>
+  <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg" alt="Conventional Commits" /></a>
+  <img src="https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=white" alt="Python 3.12" />
+  <img src="https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white" alt="React 18" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
 </p>
 
 Automated marking system for Kumon maths worksheets using pluggable vision AI providers.
