@@ -4,7 +4,7 @@
 
 image:
   repository: ghcr.io/meappy/kumon-marker
-  tag: "1.0.3"  # Updated automatically by CI/CD
+  tag: "1.0.0"  # Updated automatically by CI/CD
   pullPolicy: Always
 
 imagePullSecrets:
