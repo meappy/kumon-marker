@@ -81,15 +81,21 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
   const [scannedAt, setScannedAt] = useState<string | null>(null);
 
   // Check if a Drive file has already been marked
-  // Note: GDrive sheet_id is single (e.g., "C26a"), worksheet sheet_id is a range (e.g., "C26a-C28b")
-  // Match by sheet_id first, then by student_name if both have names
+  // Note: GDrive sheet_id has suffix (e.g., "C26a"), worksheet sheet_id is base only (e.g., "C26" or "C26-C28")
+  // Match by checking if file's base matches worksheet's base
   const isAlreadyMarked = useCallback((file: GDriveFile): WorksheetSummary | undefined => {
     if (!file.sheet_id) return undefined;
 
-    // Find worksheets with matching sheet_id
-    const matchingBySheetId = worksheets.filter(
-      (ws) => ws.sheet_id?.startsWith(file.sheet_id!)
-    );
+    // Strip a/b suffix from file's sheet_id to get base (e.g., "D1a" → "D1")
+    const fileBase = file.sheet_id.replace(/[ab]$/i, '');
+
+    // Find worksheets where the base matches
+    // Worksheet sheet_id is either "D1" (single) or "D1-D2" (range)
+    const matchingBySheetId = worksheets.filter((ws) => {
+      if (!ws.sheet_id) return false;
+      const wsBase = ws.sheet_id.split('-')[0]; // Get first part of range
+      return fileBase === wsBase;
+    });
 
     if (matchingBySheetId.length === 0) return undefined;
 
@@ -250,7 +256,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
               onClick={() => fetchFiles(true)}
               disabled={scanning || loading || activeJobs.length > 0 || processing !== null}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={activeJobs.length > 0 || processing !== null ? 'Cannot refresh while marking is in progress' : undefined}
+              title={activeJobs.length > 0 || processing !== null ? 'Cannot refresh while marking is in progress' : 'Check for new files'}
             >
               {scanning ? 'Scanning...' : 'Refresh'}
             </button>
