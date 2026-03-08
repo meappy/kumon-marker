@@ -370,7 +370,7 @@
 
 ### Features
 
-* add REDACTED to allowed users ([f102680](https://github.com/meappy/kumon-marker/commit/f102680dd93da8b54f68003d197d6f0cbe7364ce))
+* add user to allowed users ([f102680](https://github.com/meappy/kumon-marker/commit/f102680dd93da8b54f68003d197d6f0cbe7364ce))
 
 ## [0.5.3](https://github.com/meappy/kumon-marker/compare/v0.5.2...v0.5.3) (2026-01-19)
 
