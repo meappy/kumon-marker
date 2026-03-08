@@ -1,13 +1,10 @@
 # Production values for Argo CD deployment
 # This file is tracked in git - NO SECRETS HERE
-# Secrets are stored in Kubernetes Secret: kumon-marker-secrets
-
-# Use existing K8s secret instead of creating from values
-existingSecret: "kumon-marker-secrets"
+# Secrets are supplied by the kumon-marker-secrets repo via ArgoCD multi-source
 
 image:
   repository: ghcr.io/meappy/kumon-marker
-  tag: "0.6.2"  # Updated automatically by CI/CD
+  tag: "fix-sync-dev-17a44a8"  # Updated automatically by CI/CD
   pullPolicy: Always
 
 imagePullSecrets:
@@ -18,6 +15,10 @@ service:
   port: 8000
   nodePort: 30080
 
+ingress:
+  enabled: true
+  # host and className supplied by kumon-marker-secrets repo
+
 persistence:
   enabled: true
   size: 5Gi
@@ -26,43 +27,48 @@ persistence:
 resources:
   limits:
     cpu: 1000m
-    memory: 4Gi
+    memory: 1Gi
   requests:
     cpu: 100m
-    memory: 2Gi
+    memory: 512Mi
 
 config:
-  claude:
-    mode: "cli"
-    model: "claude-sonnet-4-20250514"
-    # credentials loaded from existingSecret
+  visionProvider: "anthropic"
+  validationMethod: "llm"
+
   worksheet:
     questionsPerPage: 10
     customPrompt: ""
+
   ollama:
-    baseUrl: "http://10.1.1.236:11434"
+    # baseUrl supplied by kumon-marker-secrets repo
     model: "llava:7b"
+
   anthropic:
-    model: "claude-haiku-3-5-20241022"
+    apiKey: true  # Actual key supplied by kumon-marker-secrets repo
+    model: "claude-opus-4-6"
+
   gemini:
     model: "gemini-2.0-flash"
+
+  openai:
+    model: "gpt-4o"
+
   googleDrive:
     folder: "From_BrotherDevice"
+
   auth:
-    allowedUsers:
-      - "meappy@gmail.com"
-      - "gerald@meappy.com"
-      - "REDACTED"
+    allowedUsers: []  # Supplied by kumon-marker-secrets repo
 
 # RabbitMQ configuration
 rabbitmq:
   enabled: true
-  # password loaded from existingSecret
+  # password supplied by kumon-marker-secrets repo
 
 # PostgreSQL configuration
 postgresql:
   enabled: true
-  # password loaded from existingSecret
+  # password supplied by kumon-marker-secrets repo
 
 # Worker configuration
 worker:

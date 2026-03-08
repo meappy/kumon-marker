@@ -27,16 +27,11 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS runtime
 ARG VERSION
 WORKDIR /app
 
-# Install system dependencies for PyMuPDF and Node.js for Claude CLI
+# Install system dependencies for PyMuPDF and Tesseract OCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmupdf-dev \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
 
 # Copy backend
 COPY backend/pyproject.toml ./

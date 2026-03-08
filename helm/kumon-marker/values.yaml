@@ -2,9 +2,21 @@
 
 replicaCount: 1
 
-# Use existing secret instead of creating one from values
-# If set, secrets are read from this K8s secret instead of config values
+# Use an existing K8s secret (e.g. "kumon-marker-secrets" created manually)
+# When set, Helm will NOT create a Secret — it reads from this one instead
 existingSecret: ""
+
+# Inline secrets — used when existingSecret is empty
+# These can be supplied via a separate values file (e.g. from a secrets repo)
+secrets:
+  anthropicApiKey: ""
+  geminiApiKey: ""
+  openaiApiKey: ""
+  googleClientId: ""
+  googleClientSecret: ""
+  sessionSecret: ""
+  rabbitmqPassword: ""
+  postgresqlPassword: ""
 
 image:
   repository: ghcr.io/meappy/kumon-marker
@@ -45,43 +57,55 @@ persistence:
   keepOnDelete: true
 
 config:
-  # Mode: "ollama" (recommended), "gemini", "api" (Anthropic), or "cli" (Claude Code CLI)
-  claude:
-    mode: "ollama"
-    # Model for CLI mode (claude-sonnet-4-20250514, claude-opus-4-20250514, etc.)
-    model: "claude-sonnet-4-20250514"
-    # Credentials JSON for CLI mode (from macOS Keychain: security find-generic-password -s "Claude Code-credentials" -w)
-    credentials: ""
+  # Vision provider for worksheet marking: "ollama", "anthropic", "gemini", "openai"
+  visionProvider: "ollama"
+
+  # Validation method for checking if PDF is a Kumon worksheet:
+  # "ocr" = Tesseract OCR (fast, free, no API cost)
+  # "llm" = Vision provider (more robust for scanned PDFs, uses API)
+  validationMethod: "ocr"
+
+  # Provider for LLM-based validation (empty = use same as visionProvider)
+  validationProvider: ""
 
   # Worksheet analysis settings
   worksheet:
     questionsPerPage: 10
     # Custom prompt template (uses {sheet_id}, {page_num}, {questions_per_page} placeholders)
-    # Leave empty to use default prompt
     customPrompt: ""
+
+  # Provider configurations
   ollama:
-    # Only used when claude.mode="ollama" - local LLM, no rate limits
     baseUrl: "http://host.docker.internal:11434"
     model: "moondream"
+
   anthropic:
-    # Only used when claude.mode="api"
+    # API key or OAuth session token (sk-ant-oat01-... for OAuth)
     apiKey: ""
     model: "claude-sonnet-4-20250514"
+
   gemini:
-    # Only used when claude.mode="gemini" (get from https://aistudio.google.com/apikey)
     apiKey: ""
     model: "gemini-2.0-flash"
+
+  openai:
+    apiKey: ""
+    model: "gpt-4o"
+
   google:
     clientId: ""
     clientSecret: ""
+
   googleDrive:
     folder: "From_BrotherDevice"
+
   # Job queue settings
   jobs:
     maxConcurrent: 1
+
   # Multi-user authentication
   auth:
-    # List of allowed email addresses (can also be comma-separated string for backwards compatibility)
+    # List of allowed email addresses (can also be comma-separated string)
     allowedUsers: []
     # Secret for signing session cookies (change in production)
     sessionSecret: ""

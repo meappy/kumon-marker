@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,7 +17,7 @@ from app.models.schemas import (
     HealthResponse,
     UploadedFile,
 )
-from app.services.checker import validate_kumon_worksheet, validate_kumon_from_bytes, extract_sheet_info
+from app.services.checker import validate_kumon_worksheet, extract_sheet_info
 from app.services.ocr import analyse_worksheet
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
@@ -328,28 +329,30 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
-def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
+def _scan_gdrive_files_sync(user: User, force_refresh: bool = False) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
-    Uses cached validation results to avoid re-downloading already validated files.
+    Uses cached validation results to avoid re-downloading already validated files,
+    unless force_refresh is True.
     """
     service = get_gdrive_service(user)
     folder = get_effective_setting("gdrive_folder", "From_BrotherDevice")
     files = service.list_pdfs(folder)
 
-    # Load existing cache to reuse validation results
-    existing_cache = load_gdrive_cache(user)
+    # Load existing cache to reuse validation results (unless force_refresh)
     cached_files_by_id = {}
-    if existing_cache and "files" in existing_cache:
-        for cached in existing_cache["files"]:
-            if isinstance(cached, dict) and cached.get("id"):
-                cached_files_by_id[cached["id"]] = cached
+    if not force_refresh:
+        existing_cache = load_gdrive_cache(user)
+        if existing_cache and "files" in existing_cache:
+            for cached in existing_cache["files"]:
+                if isinstance(cached, dict) and cached.get("id"):
+                    cached_files_by_id[cached["id"]] = cached
 
     # Validate each file, reusing cache where possible
     validated_files = []
     for f in files:
-        # Check if we have a cached validation for this file
+        # Check if we have a cached validation for this file (skip if force_refresh)
         cached = cached_files_by_id.get(f.id)
         if cached and cached.get("is_kumon") is not None:
             # Reuse cached validation
@@ -364,21 +367,59 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
             ))
             continue
 
-        # New file or not validated - download and validate
-        try:
-            pdf_bytes = service.download_file_bytes(f.id)
-            validation = validate_kumon_from_bytes(pdf_bytes)
+        # Try to extract sheet_id from filename (e.g., "D166a - Reduction.pdf")
+        filename_sheet_id = None
+        filename_match = re.match(r'^([A-Z]\d{1,3}[ABab]?)', f.name.upper())
+        if filename_match:
+            filename_sheet_id = filename_match.group(1)
+            print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
+            # Filename has valid Kumon pattern - assume it's Kumon (no download needed)
             validated_files.append(GDriveFile(
                 id=f.id,
                 name=f.name,
                 created_time=f.created_time,
                 size=f.size,
-                is_kumon=validation.is_kumon,
-                sheet_id=validation.sheet_id,
-                student_name=validation.student_name,
+                is_kumon=True,
+                sheet_id=filename_sheet_id,
+                student_name=None,
+            ))
+            continue
+
+        # No sheet_id in filename - extract from PDF text layer (fast, no OCR)
+        try:
+            import fitz
+            pdf_bytes = service.download_file_bytes(f.id)
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            text = doc[0].get_text().upper() if doc.page_count > 0 else ""
+            doc.close()
+
+            is_kumon = "KUMON" in text
+            print(f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}")
+
+            # Extract sheet_id from text layer (e.g., "D166A", "B 161", "C26 a")
+            text_sheet_id = None
+            if is_kumon:
+                # Look for sheet ID pattern: Letter + digits + optional a/b
+                # Handle spaces that might be in scanned text
+                sheet_match = re.search(r'\b([A-Z])\s*(\d{1,3})\s*([AB])?\b', text)
+                if sheet_match:
+                    letter = sheet_match.group(1)
+                    number = sheet_match.group(2)
+                    suffix = sheet_match.group(3) or ""
+                    text_sheet_id = f"{letter}{number}{suffix}"
+                    print(f"Extracted sheet_id from text layer: {text_sheet_id}")
+
+            validated_files.append(GDriveFile(
+                id=f.id,
+                name=f.name,
+                created_time=f.created_time,
+                size=f.size,
+                is_kumon=is_kumon,
+                sheet_id=text_sheet_id,
+                student_name=None,
             ))
         except Exception as e:
-            print(f"Error validating {f.name}: {e}")
+            print(f"Error checking {f.name}: {e}")
             # Include file but mark as unknown
             validated_files.append(GDriveFile(
                 id=f.id,
@@ -393,8 +434,15 @@ def _scan_gdrive_files_sync(user: User) -> tuple[list[GDriveFile], str]:
 
 
 @router.get("/gdrive/files")
-async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_current_user)):
-    """List PDF files in Google Drive folder for the current user."""
+async def list_gdrive_files(
+    refresh: bool = False,
+    user: User = Depends(get_current_user),
+):
+    """List PDF files in Google Drive folder for the current user.
+
+    Args:
+        refresh: Re-fetch file list from Drive (fast, no validation)
+    """
     try:
         # Check cache first (unless refresh requested)
         if not refresh:
@@ -413,7 +461,7 @@ async def list_gdrive_files(refresh: bool = False, user: User = Depends(get_curr
         # Run blocking operations in thread pool to avoid blocking the event loop
         # This prevents health check timeouts during long scans
         validated_files, scanned_at = await asyncio.to_thread(
-            _scan_gdrive_files_sync, user
+            _scan_gdrive_files_sync, user, refresh
         )
 
         # Save to cache
