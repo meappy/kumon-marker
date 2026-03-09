@@ -137,25 +137,62 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
   const [processing, setProcessing] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const processingRef = useRef(false);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchFiles = async (refresh: boolean = false) => {
-    if (refresh) {
-      setScanning(true);
-    } else {
-      setLoading(true);
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
+  }, []);
+
+  const fetchFiles = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
-      const response = await api.listGDriveFiles(refresh);
+      const response = await api.listGDriveFiles();
       setFiles(response.files || []);
       setScannedAt(response.scanned_at || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch files');
     } finally {
       setLoading(false);
-      setScanning(false);
     }
-  };
+  }, []);
+
+  const pollScanStatus = useCallback(() => {
+    // Don't start a second poller
+    if (pollTimerRef.current) return;
+
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const status = await api.getGDriveScanStatus();
+        if (status.status === 'idle') {
+          setScanning(false);
+          stopPolling();
+          // Scan finished — fetch the updated file list
+          await fetchFiles();
+        }
+        if (status.scanned_at) {
+          setScannedAt(status.scanned_at);
+        }
+      } catch {
+        // Ignore poll errors silently
+      }
+    }, 2000);
+  }, [stopPolling, fetchFiles]);
+
+  const startScan = useCallback(async () => {
+    setScanning(true);
+    setError(null);
+    try {
+      await api.startGDriveScan();
+      pollScanStatus();
+    } catch (err) {
+      setScanning(false);
+      setError(err instanceof Error ? err.message : 'Failed to start scan');
+    }
+  }, [pollScanStatus]);
 
   // Process queue one at a time
   const processQueue = useCallback(async () => {
@@ -196,14 +233,37 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
 
   useEffect(() => {
     if (isOpen) {
-      fetchFiles(false);
-      // Reset state when opening
+      // Reset queue state when opening
       setCompleted(new Set());
       setQueue([]);
       setProcessing(null);
       processingRef.current = false;
+
+      // Load cached files immediately
+      fetchFiles();
+
+      // Check if a scan is already running (e.g. started before modal was closed)
+      (async () => {
+        try {
+          const status = await api.getGDriveScanStatus();
+          if (status.status === 'scanning') {
+            setScanning(true);
+            pollScanStatus();
+          }
+        } catch {
+          // Ignore — not critical
+        }
+      })();
+    } else {
+      // Modal closed — stop polling (scan continues in background)
+      stopPolling();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchFiles, pollScanStatus, stopPolling]);
+
+  // Clean up poll timer on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -253,7 +313,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchFiles(true)}
+              onClick={startScan}
               disabled={scanning || loading || activeJobs.length > 0 || processing !== null}
               className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title={activeJobs.length > 0 || processing !== null ? 'Cannot refresh while marking is in progress' : 'Check for new files'}
