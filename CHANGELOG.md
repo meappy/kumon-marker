@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/meappy/kumon-marker/compare/v1.0.1...v1.0.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* use latest Docker image tag for correct branding ([#27](https://github.com/meappy/kumon-marker/issues/27)) ([c825c11](https://github.com/meappy/kumon-marker/commit/c825c11393afe85efdcbb5847ac6b98917e5ce18))
+
 ## [1.0.1](https://github.com/meappy/kumon-marker/compare/v1.0.0...v1.0.1) (2026-03-08)
 
 
