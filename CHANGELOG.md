@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/meappy/kumon-marker/compare/v1.3.0...v1.4.0) (2026-03-09)
+
+
+### Bug Fixes
+
+* show meaningful names in marking queue ([#34](https://github.com/meappy/kumon-marker/issues/34)) ([9543d0e](https://github.com/meappy/kumon-marker/commit/9543d0eab126bdc7f245ad68b1f6a17712e48411))
+* update GDrive cache with corrected sheet ID after processing ([#36](https://github.com/meappy/kumon-marker/issues/36)) ([1857bfd](https://github.com/meappy/kumon-marker/commit/1857bfde36cd7cfeceb5981f96bfcf93266d7c84))
+
+
+### Features
+
+* clean up header with kebab menu and fixed-width layout ([#35](https://github.com/meappy/kumon-marker/issues/35)) ([7a7c981](https://github.com/meappy/kumon-marker/commit/7a7c9817a0f1ad881afef4f8af3e0919001f7248))
+
 # [1.3.0](https://github.com/meappy/kumon-marker/compare/v1.2.0...v1.3.0) (2026-03-09)
 
 
