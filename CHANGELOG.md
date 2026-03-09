@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/meappy/kumon-marker/compare/v1.1.2...v1.2.0) (2026-03-09)
+
+
+### Features
+
+* add English worksheet marking support ([#32](https://github.com/meappy/kumon-marker/issues/32)) ([09fbab6](https://github.com/meappy/kumon-marker/commit/09fbab6f23f97fd60eddfbc6f664be80da0ccc35))
+
 ## [1.1.2](https://github.com/meappy/kumon-marker/compare/v1.1.1...v1.1.2) (2026-03-09)
 
 
