@@ -119,6 +119,7 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
 def _detect_topic_from_text(text: str) -> str | None:
     """Detect topic from text keywords."""
     text_lower = text.lower()
+    # Maths topics
     if "subtraction" in text_lower or "subtracting" in text_lower:
         return "Subtraction"
     elif "addition" in text_lower or "adding" in text_lower:
@@ -133,7 +134,54 @@ def _detect_topic_from_text(text: str) -> str | None:
         return "Fractions"
     elif "integration" in text_lower:
         return "Integration"
+    # English topics
+    elif "vocabulary" in text_lower:
+        return "Vocabulary"
+    elif "grammar" in text_lower:
+        return "Grammar"
+    elif "sentence" in text_lower:
+        return "Sentence Building"
+    elif "paragraph" in text_lower:
+        return "Paragraph Building"
+    elif "summar" in text_lower:
+        return "Summarisation"
+    elif "reading" in text_lower:
+        return "Reading"
     return None
+
+
+def _detect_subject_from_text(text: str) -> str:
+    """Detect subject (maths or english) from text keywords."""
+    text_lower = text.lower()
+    maths_keywords = [
+        "addition",
+        "subtraction",
+        "multiplication",
+        "division",
+        "reduction",
+        "fraction",
+        "integration",
+        "factori",
+        "subtract",
+        "multiply",
+        "divide",
+        "add.",
+    ]
+    english_keywords = [
+        "vocabulary",
+        "grammar",
+        "sentence",
+        "paragraph",
+        "reading",
+        "summarisation",
+        "read the",
+        "fill in",
+        "complete the sentence",
+        "choose the word",
+    ]
+    maths_score = sum(1 for kw in maths_keywords if kw in text_lower)
+    english_score = sum(1 for kw in english_keywords if kw in text_lower)
+    return "english" if english_score > maths_score else "maths"
 
 
 def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
@@ -152,11 +200,18 @@ READ EVERY DIGIT CAREFULLY — do not skip or drop any digits. For example, "B71
 
 ALSO CHECK the TOP RIGHT corner — Kumon worksheets often print the letter and number again there (e.g., "B 71") which can help confirm the sheet ID.
 
-The topic is printed below or near the sheet ID (e.g., "Reduction", "Addition", "Subtraction", "Division", "Multiplication", "Fractions", "Integration").
+Determine the SUBJECT:
+- "maths" if it contains arithmetic, equations, numbers, calculations
+- "english" if it contains reading passages, vocabulary, grammar, sentence completion, fill-in-the-blank with words
+
+The topic is printed below or near the sheet ID.
+- Maths topics: "Reduction", "Addition", "Subtraction", "Division", "Multiplication", "Fractions", "Integration"
+- English topics: "Reading", "Vocabulary", "Grammar", "Sentence Building", "Paragraph Building", "Summarisation"
+
 The student name is handwritten in the "Name" field.
 
 If it IS a Kumon worksheet, respond with JSON:
-{"is_kumon": true, "sheet_id": "<exact ID from top left like D166a>", "topic": "<topic name or null>", "student_name": "<handwritten name or null>"}
+{"is_kumon": true, "sheet_id": "<exact ID from top left like D166a>", "subject": "maths or english", "topic": "<topic name or null>", "student_name": "<handwritten name or null>"}
 
 If it is NOT a Kumon worksheet, respond with:
 {"is_kumon": false}
@@ -173,7 +228,7 @@ Only respond with the JSON, nothing else."""
             return ValidationResult(
                 is_kumon=True,
                 sheet_id=result.get("sheet_id"),
-                subject="maths",
+                subject=result.get("subject", "maths"),
                 topic=result.get("topic"),
                 student_name=result.get("student_name"),
             )
@@ -292,7 +347,7 @@ def validate_kumon_from_bytes(
         return ValidationResult(
             is_kumon=True,
             sheet_id=sheet_id,
-            subject="maths",
+            subject=_detect_subject_from_text(text),
             topic=_detect_topic_from_text(text),
             student_name=student_name,
         )
@@ -342,7 +397,7 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
                 return ValidationResult(
                     is_kumon=True,
                     sheet_id=ocr_sheet_id,
-                    subject="maths",
+                    subject="maths",  # OCR path is maths-only for now
                     topic=ocr_topic,
                 )
 
@@ -356,7 +411,7 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         return ValidationResult(
             is_kumon=True,
             sheet_id=sheet_id,
-            subject="maths",
+            subject=_detect_subject_from_text(text),
             topic=_detect_topic_from_text(text),
         )
 

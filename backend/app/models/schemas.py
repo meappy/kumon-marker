@@ -6,8 +6,9 @@ from pydantic import BaseModel, Field
 
 class ErrorDetail(BaseModel):
     """A single marking error on a worksheet."""
+
     q: int = Field(description="Question number")
-    problem: str = Field(description="The maths problem")
+    problem: str = Field(description="The question or exercise")
     student: str | int = Field(description="Student's answer")
     correct: str | int = Field(description="Correct answer")
     x: float = Field(default=200, description="X position for tick mark")
@@ -16,6 +17,7 @@ class ErrorDetail(BaseModel):
 
 class PageResult(BaseModel):
     """Analysis result for a single page."""
+
     sheet_id: str = Field(description="Sheet ID e.g. B161a")
     page_num: int = Field(description="Page number (0-indexed)")
     total_questions: int = Field(default=10, description="Total questions on page")
@@ -24,6 +26,7 @@ class PageResult(BaseModel):
 
 class WorksheetResult(BaseModel):
     """Complete analysis result for a worksheet PDF."""
+
     pdf_name: str
     timestamp: datetime = Field(default_factory=datetime.now)
     results: list[PageResult]
@@ -56,6 +59,7 @@ class WorksheetResult(BaseModel):
 
 class ValidationResult(BaseModel):
     """Result of validating a PDF is a Kumon worksheet."""
+
     is_kumon: bool
     sheet_id: str | None = None
     subject: str | None = None
@@ -65,6 +69,7 @@ class ValidationResult(BaseModel):
 
 class WorksheetSummary(BaseModel):
     """Summary info for listing worksheets."""
+
     id: str = Field(description="Unique identifier (PDF stem)")
     pdf_name: str
     timestamp: datetime
@@ -81,6 +86,7 @@ class WorksheetSummary(BaseModel):
 
 class GDriveFile(BaseModel):
     """A file in Google Drive."""
+
     id: str
     name: str
     created_time: datetime
@@ -92,11 +98,15 @@ class GDriveFile(BaseModel):
 
 class ProcessRequest(BaseModel):
     """Request to process a worksheet."""
-    validate_worksheet: bool = Field(default=True, description="Validate is Kumon worksheet first")
+
+    validate_worksheet: bool = Field(
+        default=True, description="Validate is Kumon worksheet first"
+    )
 
 
 class ConfigUpdate(BaseModel):
     """Configuration update request."""
+
     anthropic_api_key: str | None = None
     gdrive_folder: str | None = None
     auto_sync: bool | None = None
@@ -105,11 +115,13 @@ class ConfigUpdate(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str = "healthy"
 
 
 class UploadedFile(BaseModel):
     """An uploaded file in the scans directory."""
+
     id: str = Field(description="File ID (stem without extension)")
     filename: str = Field(description="Original filename")
     uploaded_at: datetime = Field(description="When the file was uploaded")
@@ -117,4 +129,6 @@ class UploadedFile(BaseModel):
     is_kumon: bool | None = None
     sheet_id: str | None = None
     student_name: str | None = None
-    is_processed: bool = Field(default=False, description="Whether this file has been marked")
+    is_processed: bool = Field(
+        default=False, description="Whether this file has been marked"
+    )

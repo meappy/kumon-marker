@@ -277,6 +277,7 @@ async def _do_process_worksheet(
         prefix, base_num = extract_sheet_info(
             validation.sheet_id if validation.is_kumon else None
         )
+        subject = validation.subject or "maths"
 
         # Extract student name using vision model only if not provided
         if student_name is None:
@@ -293,6 +294,7 @@ async def _do_process_worksheet(
             pdf_path,
             sheet_prefix=prefix,
             base_num=base_num,
+            subject=subject,
         )
 
         # Save results
