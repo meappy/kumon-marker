@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/meappy/kumon-marker/compare/v1.4.0...v1.4.1) (2026-03-09)
+
+
+### Bug Fixes
+
+* widen desktop layout from max-w-2xl to max-w-4xl and prevent Delete All text wrapping ([#37](https://github.com/meappy/kumon-marker/issues/37)) ([b5a2bf7](https://github.com/meappy/kumon-marker/commit/b5a2bf76d21921eb1f659df6b4bd693fe3204c64))
+
 # [1.4.0](https://github.com/meappy/kumon-marker/compare/v1.3.0...v1.4.0) (2026-03-09)
 
 
