@@ -275,7 +275,7 @@ function App() {
       {/* Notification banner */}
       {notification && (
         <div
-          className={`mx-auto max-w-4xl mt-4 px-4 py-3 rounded-lg ${
+          className={`mx-auto max-w-2xl mt-4 px-4 py-3 rounded-lg ${
             notification.type === 'success'
               ? 'bg-green-50 text-green-700 border border-green-200'
               : 'bg-red-50 text-red-700 border border-red-200'
@@ -295,7 +295,7 @@ function App() {
         </div>
       )}
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="mb-8">
           <Uploader onUpload={handleUpload} />
         </div>
