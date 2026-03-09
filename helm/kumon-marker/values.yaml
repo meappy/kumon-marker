@@ -112,7 +112,7 @@ config:
 
 # RabbitMQ configuration
 rabbitmq:
-  enabled: false
+  enabled: true
   image: rabbitmq:3.13-management-alpine
   port: 5672
   managementPort: 15672
@@ -134,7 +134,7 @@ rabbitmq:
 
 # PostgreSQL configuration
 postgresql:
-  enabled: false
+  enabled: true
   image: postgres:16-alpine
   port: 5432
   database: kumon
