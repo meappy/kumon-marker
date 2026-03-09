@@ -2,6 +2,19 @@ import { useEffect } from 'react';
 import type { Job } from '../api/client';
 import { api } from '../api/client';
 
+function formatJobName(worksheetId: string): string {
+  // Format: 20260309203533_001 → "9 Mar 20:35 #001"
+  const match = worksheetId.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})\d{2}_(.+)$/);
+  if (match) {
+    const [, , month, day, hour, minute, seq] = match;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = months[parseInt(month, 10) - 1] || month;
+    return `${parseInt(day, 10)} ${monthName} ${hour}:${minute} #${seq}`;
+  }
+  // Fallback: just show the ID
+  return worksheetId;
+}
+
 interface QueuePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -127,7 +140,7 @@ export function QueuePanel({ isOpen, onClose, jobs }: QueuePanelProps) {
                 <div key={job.id} className="p-3 flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {job.worksheet_id.replace(/^\d{14}_/, '').replace(/_/g, ' ')}
+                      {formatJobName(job.worksheet_id)}
                     </p>
                     {job.error && (
                       <p className="text-xs text-red-500 truncate">{job.error}</p>
