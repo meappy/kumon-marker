@@ -83,7 +83,52 @@ If ALL answers are correct:
 {{"sheet_id": "{sheet_id}", "page_num": {page_num}, "total_questions": <ACTUAL COUNT>, "errors": []}}'''
 
 
-def get_analysis_prompt(sheet_id: str, page_num: int) -> str:
+def get_english_prompt(sheet_id: str, page_num: int) -> str:
+    """Get the prompt for English worksheet analysis."""
+    return f'''Mark this Kumon English worksheet page ({sheet_id}, page {page_num + 1}).
+
+This is a Kumon English worksheet. The student has written answers in handwriting.
+
+TASK - Check EVERY question carefully:
+1. Find ALL numbered questions/exercises on this page
+2. For EACH question:
+   - Read the exercise instructions and any passage text
+   - Determine the correct answer (from context, word boxes, grammar rules, or passage content)
+   - Read the student's handwritten answer
+   - Compare: is the student's answer CORRECT or WRONG?
+3. Report ALL questions where the student's answer is WRONG
+
+EXERCISE TYPES you may encounter:
+- Fill-in-the-blank from a word box: check if the student chose the right word
+- Sentence completion: check grammar, spelling, and meaning
+- Vocabulary: check if the correct word/definition is given
+- Grammar exercises: check verb tenses, word order, punctuation
+- Reading comprehension: check if the answer matches what the passage says
+- True/False: check against the passage content
+- Sequencing: check if the order is correct
+
+CRITICAL - Be thorough:
+- Check EVERY single question, do not skip any
+- Spelling must be exact (minor capitalisation differences are OK)
+- Read handwriting carefully — messy letters can look similar
+- For fill-in-the-blank, only the word from the word box is correct
+- For comprehension, accept answers that capture the correct meaning even if worded differently
+
+For each WRONG answer, estimate the position of the question on the page:
+- x: horizontal position (0=left edge, ~595=right edge)
+- y: vertical position (0=top, ~842=bottom)
+
+Return ONLY this JSON:
+{{"sheet_id": "{sheet_id}", "page_num": {page_num}, "total_questions": <ACTUAL COUNT>, "errors": [<WRONG answers only>]}}
+
+For each WRONG answer:
+{{"q": <number>, "problem": "<the exercise/question>", "student": "<student answer>", "correct": "<correct answer>", "x": <x position>, "y": <y position>}}
+
+If ALL answers are correct:
+{{"sheet_id": "{sheet_id}", "page_num": {page_num}, "total_questions": <ACTUAL COUNT>, "errors": []}}'''
+
+
+def get_analysis_prompt(sheet_id: str, page_num: int, subject: str = "maths") -> str:
     """Get the prompt for worksheet analysis (uses custom prompt if configured)."""
     questions_per_page = get_questions_per_page()
     custom_prompt = get_effective_setting("custom_prompt", "")
@@ -92,6 +137,9 @@ def get_analysis_prompt(sheet_id: str, page_num: int) -> str:
         return custom_prompt.format(
             sheet_id=sheet_id, page_num=page_num, questions_per_page=questions_per_page
         )
+
+    if subject == "english":
+        return get_english_prompt(sheet_id, page_num)
 
     return get_default_prompt(sheet_id, page_num, questions_per_page)
 
@@ -188,9 +236,10 @@ def analyse_page(
     image_bytes: bytes,
     page_num: int,
     sheet_id: str,
+    subject: str = "maths",
 ) -> PageResult:
     """Analyse a single worksheet page using the configured vision provider."""
-    prompt = get_analysis_prompt(sheet_id, page_num)
+    prompt = get_analysis_prompt(sheet_id, page_num, subject=subject)
 
     try:
         provider = get_provider()
@@ -212,6 +261,7 @@ def analyse_worksheet(
     sheet_prefix: str = "B",
     base_num: int = 161,
     progress_callback: callable = None,
+    subject: str = "maths",
 ) -> list[PageResult]:
     """Analyse all pages of a worksheet PDF.
 
@@ -223,6 +273,7 @@ def analyse_worksheet(
         sheet_prefix: Prefix for sheet IDs (e.g., "B" for B161a).
         base_num: Base number for sheet IDs.
         progress_callback: Optional callback function(current_page, total_pages).
+        subject: Worksheet subject ("maths" or "english").
     """
     num_pages = pdf_page_count(pdf_path)
 
@@ -244,7 +295,7 @@ def analyse_worksheet(
         print(f"Analysing page {i + 1}/{num_pages} ({sheet_id})...")
 
         image_bytes = pdf_page_to_image(pdf_path, i)
-        result = analyse_page(image_bytes, i, sheet_id)
+        result = analyse_page(image_bytes, i, sheet_id, subject=subject)
         results.append(result)
 
         if progress_callback:

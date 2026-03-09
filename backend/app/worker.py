@@ -12,7 +12,11 @@ from app.core.session import get_user_data_dir
 from app.models.job import JobStatus, init_db
 from app.services.queue import QUEUE_NAME, update_job_status
 from app.services.checker import validate_kumon_worksheet, extract_sheet_info
-from app.services.ocr import analyse_worksheet, extract_name_with_vision, pdf_page_to_image
+from app.services.ocr import (
+    analyse_worksheet,
+    extract_name_with_vision,
+    pdf_page_to_image,
+)
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
 
@@ -65,6 +69,7 @@ def process_worksheet(
         prefix, base_num = extract_sheet_info(
             validation.sheet_id if validation.is_kumon else None
         )
+        subject = validation.subject or "maths"
 
         # Update progress - extracting name
         update_job_status(job_id, JobStatus.PROCESSING, progress=20)
@@ -94,6 +99,7 @@ def process_worksheet(
             sheet_prefix=prefix,
             base_num=base_num,
             progress_callback=ocr_progress,
+            subject=subject,
         )
 
         # Save results
