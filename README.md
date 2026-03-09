@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
 </p>
 
-Automated marking system for Kumon maths worksheets using pluggable vision AI providers.
+Automated marking system for Kumon maths and English worksheets using pluggable vision AI providers.
 
 ## Features
 
@@ -191,6 +191,10 @@ docker build -t ghcr.io/meappy/kumon-marker:latest .
 | POST | `/api/gdrive/sync/{id}` | Sync file from Google Drive |
 | GET | `/api/jobs/status` | Get job queue status |
 | DELETE | `/api/jobs/{id}` | Cancel a job |
+
+## References
+
+- [Kumon Home Marking Guides](https://kumon.sg/home-marking-guides/) — Official marking guides for maths and English worksheets
 
 ## Contributing
 
