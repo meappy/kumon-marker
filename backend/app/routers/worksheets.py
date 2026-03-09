@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,12 +25,21 @@ from app.services.reporter import create_report
 from app.services.gdrive import GDriveService
 from app.services.queue import create_and_queue_job, is_queue_enabled
 from app.core.config import settings, get_effective_setting
-from app.core.session import User, get_current_user, get_user_data_dir, get_user_token_path
+from app.core.session import (
+    User,
+    get_current_user,
+    get_user_data_dir,
+    get_user_token_path,
+)
 
 router = APIRouter()
 
 # Semaphore to limit concurrent processing jobs
 _job_semaphore: asyncio.Semaphore | None = None
+
+# In-memory scan state per user: {user_id: {"status": "scanning"|"idle", "scanned_at": str|None}}
+_scan_state: dict[str, dict] = {}
+_scan_state_lock = threading.Lock()
 
 
 def get_job_semaphore() -> asyncio.Semaphore:
@@ -77,7 +87,9 @@ async def list_worksheets(user: User = Depends(get_current_user)):
             total_q = sum(r.total_questions for r in results)
             total_e = sum(len(r.errors) for r in results)
             pct = (total_q - total_e) / total_q * 100 if total_q > 0 else 100
-            grade = 'A' if pct >= 90 else 'B' if pct >= 70 else 'C' if pct >= 50 else 'D'
+            grade = (
+                "A" if pct >= 90 else "B" if pct >= 70 else "C" if pct >= 50 else "D"
+            )
 
             # Get sheet ID range (e.g. "C26" or "C26-C28")
             sheet_ids = [r.sheet_id for r in results if r.sheet_id]
@@ -85,27 +97,37 @@ async def list_worksheets(user: User = Depends(get_current_user)):
                 # Strip a/b suffix and get unique base IDs
                 bases = []
                 for sid in sheet_ids:
-                    base = sid.rstrip('ab') if sid and sid[-1] in 'ab' else sid
+                    base = sid.rstrip("ab") if sid and sid[-1] in "ab" else sid
                     if base and base not in bases:
                         bases.append(base)
-                sheet_id = f"{bases[0]}-{bases[-1]}" if len(bases) > 1 else bases[0] if bases else None
+                sheet_id = (
+                    f"{bases[0]}-{bases[-1]}"
+                    if len(bases) > 1
+                    else bases[0]
+                    if bases
+                    else None
+                )
             else:
                 sheet_id = None
 
-            summaries.append(WorksheetSummary(
-                id=json_path.stem,
-                pdf_name=data["pdf_name"],
-                timestamp=datetime.fromisoformat(data["timestamp"]),
-                pages=len(results),
-                total_questions=total_q,
-                total_errors=total_e,
-                score_percentage=pct,
-                grade=grade,
-                has_marked_pdf=(marked_dir / f"{json_path.stem}_marked.pdf").exists(),
-                has_report=(reports_dir / f"{json_path.stem}_report.pdf").exists(),
-                student_name=data.get("student_name"),
-                sheet_id=sheet_id,
-            ))
+            summaries.append(
+                WorksheetSummary(
+                    id=json_path.stem,
+                    pdf_name=data["pdf_name"],
+                    timestamp=datetime.fromisoformat(data["timestamp"]),
+                    pages=len(results),
+                    total_questions=total_q,
+                    total_errors=total_e,
+                    score_percentage=pct,
+                    grade=grade,
+                    has_marked_pdf=(
+                        marked_dir / f"{json_path.stem}_marked.pdf"
+                    ).exists(),
+                    has_report=(reports_dir / f"{json_path.stem}_report.pdf").exists(),
+                    student_name=data.get("student_name"),
+                    sheet_id=sheet_id,
+                )
+            )
         except (json.JSONDecodeError, KeyError):
             continue
 
@@ -260,6 +282,7 @@ async def _do_process_worksheet(
         if student_name is None:
             try:
                 from app.services.ocr import extract_name_with_vision, pdf_page_to_image
+
                 image_bytes = pdf_page_to_image(pdf_path, 0)
                 student_name = extract_name_with_vision(image_bytes)
             except Exception as e:
@@ -329,7 +352,9 @@ def save_gdrive_cache(user: User, files: list[GDriveFile], scanned_at: str):
     cache_path.write_text(json.dumps(cache_data, indent=2, default=str))
 
 
-def _scan_gdrive_files_sync(user: User, force_refresh: bool = False) -> tuple[list[GDriveFile], str]:
+def _scan_gdrive_files_sync(
+    user: User, force_refresh: bool = False
+) -> tuple[list[GDriveFile], str]:
     """Synchronous helper to scan Google Drive files.
 
     Run in a thread pool to avoid blocking the event loop.
@@ -356,52 +381,59 @@ def _scan_gdrive_files_sync(user: User, force_refresh: bool = False) -> tuple[li
         cached = cached_files_by_id.get(f.id)
         if cached and cached.get("is_kumon") is not None:
             # Reuse cached validation
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=cached.get("is_kumon"),
-                sheet_id=cached.get("sheet_id"),
-                student_name=cached.get("student_name"),
-            ))
+            validated_files.append(
+                GDriveFile(
+                    id=f.id,
+                    name=f.name,
+                    created_time=f.created_time,
+                    size=f.size,
+                    is_kumon=cached.get("is_kumon"),
+                    sheet_id=cached.get("sheet_id"),
+                    student_name=cached.get("student_name"),
+                )
+            )
             continue
 
         # Try to extract sheet_id from filename (e.g., "D166a - Reduction.pdf")
         filename_sheet_id = None
-        filename_match = re.match(r'^([A-Z]\d{1,3}[ABab]?)', f.name.upper())
+        filename_match = re.match(r"^([A-Z]\d{1,3}[ABab]?)", f.name.upper())
         if filename_match:
             filename_sheet_id = filename_match.group(1)
             print(f"Extracted sheet_id from filename '{f.name}': {filename_sheet_id}")
             # Filename has valid Kumon pattern - assume it's Kumon (no download needed)
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=True,
-                sheet_id=filename_sheet_id,
-                student_name=None,
-            ))
+            validated_files.append(
+                GDriveFile(
+                    id=f.id,
+                    name=f.name,
+                    created_time=f.created_time,
+                    size=f.size,
+                    is_kumon=True,
+                    sheet_id=filename_sheet_id,
+                    student_name=None,
+                )
+            )
             continue
 
         # No sheet_id in filename - extract from PDF text layer (fast, no OCR)
         try:
             import fitz
+
             pdf_bytes = service.download_file_bytes(f.id)
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             text = doc[0].get_text().upper() if doc.page_count > 0 else ""
             doc.close()
 
             is_kumon = "KUMON" in text
-            print(f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}")
+            print(
+                f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}"
+            )
 
             # Extract sheet_id from text layer (e.g., "D166A", "B 161", "C26 a")
             text_sheet_id = None
             if is_kumon:
                 # Look for sheet ID pattern: Letter + digits + optional a/b
                 # Handle spaces that might be in scanned text
-                sheet_match = re.search(r'\b([A-Z])\s*(\d{1,3})\s*([AB])?\b', text)
+                sheet_match = re.search(r"\b([A-Z])\s*(\d{1,3})\s*([AB])?\b", text)
                 if sheet_match:
                     letter = sheet_match.group(1)
                     number = sheet_match.group(2)
@@ -409,28 +441,93 @@ def _scan_gdrive_files_sync(user: User, force_refresh: bool = False) -> tuple[li
                     text_sheet_id = f"{letter}{number}{suffix}"
                     print(f"Extracted sheet_id from text layer: {text_sheet_id}")
 
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=is_kumon,
-                sheet_id=text_sheet_id,
-                student_name=None,
-            ))
+            validated_files.append(
+                GDriveFile(
+                    id=f.id,
+                    name=f.name,
+                    created_time=f.created_time,
+                    size=f.size,
+                    is_kumon=is_kumon,
+                    sheet_id=text_sheet_id,
+                    student_name=None,
+                )
+            )
         except Exception as e:
             print(f"Error checking {f.name}: {e}")
             # Include file but mark as unknown
-            validated_files.append(GDriveFile(
-                id=f.id,
-                name=f.name,
-                created_time=f.created_time,
-                size=f.size,
-                is_kumon=None,
-            ))
+            validated_files.append(
+                GDriveFile(
+                    id=f.id,
+                    name=f.name,
+                    created_time=f.created_time,
+                    size=f.size,
+                    is_kumon=None,
+                )
+            )
 
     scanned_at = datetime.now().isoformat()
     return validated_files, scanned_at
+
+
+def _get_scan_state(user_id: str) -> dict:
+    """Get the scan state for a user, initialising if needed."""
+    with _scan_state_lock:
+        if user_id not in _scan_state:
+            _scan_state[user_id] = {"status": "idle", "scanned_at": None}
+        return _scan_state[user_id]
+
+
+def _run_background_scan(user: User) -> None:
+    """Run a Google Drive scan in a background thread and update state when done."""
+    state = _get_scan_state(user.id)
+    try:
+        validated_files, scanned_at = _scan_gdrive_files_sync(user, force_refresh=True)
+        save_gdrive_cache(user, validated_files, scanned_at)
+        with _scan_state_lock:
+            state["scanned_at"] = scanned_at
+    except Exception as e:
+        print(f"Background scan error for user {user.id}: {e}")
+    finally:
+        with _scan_state_lock:
+            state["status"] = "idle"
+
+
+@router.post("/gdrive/scan")
+async def start_gdrive_scan(user: User = Depends(get_current_user)):
+    """Start a background Google Drive scan. Returns immediately."""
+    # Check if user has Google token
+    token_path = get_user_token_path(user.id)
+    if not token_path.exists():
+        raise HTTPException(status_code=400, detail="Google Drive not connected")
+
+    state = _get_scan_state(user.id)
+    with _scan_state_lock:
+        if state["status"] == "scanning":
+            # Already scanning, just return current status
+            return {"status": "scanning"}
+        state["status"] = "scanning"
+
+    # Run in a background thread so the endpoint returns immediately
+    thread = threading.Thread(target=_run_background_scan, args=(user,), daemon=True)
+    thread.start()
+
+    return {"status": "scanning"}
+
+
+@router.get("/gdrive/scan/status")
+async def get_gdrive_scan_status(user: User = Depends(get_current_user)):
+    """Get the current scan status for the user."""
+    state = _get_scan_state(user.id)
+    with _scan_state_lock:
+        result = {"status": state["status"], "scanned_at": state["scanned_at"]}
+
+    # If idle and we have a cache, include the cached scanned_at
+    if result["scanned_at"] is None:
+        cache = load_gdrive_cache(user)
+        if cache:
+            result["scanned_at"] = cache.get("scanned_at")
+
+    return result
 
 
 @router.get("/gdrive/files")
@@ -438,41 +535,52 @@ async def list_gdrive_files(
     refresh: bool = False,
     user: User = Depends(get_current_user),
 ):
-    """List PDF files in Google Drive folder for the current user.
+    """List cached PDF files from Google Drive.
 
-    Args:
-        refresh: Re-fetch file list from Drive (fast, no validation)
+    Returns cached files. Use POST /gdrive/scan to trigger a refresh.
+    The refresh parameter is kept for backward compatibility but now
+    triggers a background scan and returns cached data.
     """
     try:
-        # Check cache first (unless refresh requested)
+        # If refresh requested, start a background scan (non-blocking)
+        if refresh:
+            token_path = get_user_token_path(user.id)
+            if not token_path.exists():
+                raise HTTPException(
+                    status_code=400, detail="Google Drive not connected"
+                )
+
+            state = _get_scan_state(user.id)
+            with _scan_state_lock:
+                if state["status"] != "scanning":
+                    state["status"] = "scanning"
+                    thread = threading.Thread(
+                        target=_run_background_scan, args=(user,), daemon=True
+                    )
+                    thread.start()
+
+        # Always return cached data
+        cache = load_gdrive_cache(user)
+        if cache:
+            return {
+                "scanned_at": cache["scanned_at"],
+                "files": cache["files"],
+            }
+
+        # No cache yet — if not scanning, start a scan
         if not refresh:
-            cache = load_gdrive_cache(user)
-            if cache:
-                return {
-                    "scanned_at": cache["scanned_at"],
-                    "files": cache["files"],
-                }
-
-        # Check if user has Google token
-        token_path = get_user_token_path(user.id)
-        if not token_path.exists():
-            raise HTTPException(status_code=400, detail="Google Drive not connected")
-
-        # Run blocking operations in thread pool to avoid blocking the event loop
-        # This prevents health check timeouts during long scans
-        validated_files, scanned_at = await asyncio.to_thread(
-            _scan_gdrive_files_sync, user, refresh
-        )
-
-        # Save to cache
-        save_gdrive_cache(user, validated_files, scanned_at)
+            token_path = get_user_token_path(user.id)
+            if not token_path.exists():
+                raise HTTPException(
+                    status_code=400, detail="Google Drive not connected"
+                )
 
         return {
-            "scanned_at": scanned_at,
-            "files": [f.model_dump() for f in validated_files],
+            "scanned_at": None,
+            "files": [],
         }
     except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
+        raise
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -480,7 +588,9 @@ async def list_gdrive_files(
 
 
 @router.post("/gdrive/sync/{file_id}")
-async def sync_from_gdrive(file_id: str, filename: str, user: User = Depends(get_current_user)):
+async def sync_from_gdrive(
+    file_id: str, filename: str, user: User = Depends(get_current_user)
+):
     """Download a file from Google Drive for the current user."""
     try:
         service = get_gdrive_service(user)
@@ -491,10 +601,18 @@ async def sync_from_gdrive(file_id: str, filename: str, user: User = Depends(get
         dest_path = scans_dir / filename
 
         if dest_path.exists():
-            return {"message": "File already exists", "filename": filename, "id": dest_path.stem}
+            return {
+                "message": "File already exists",
+                "filename": filename,
+                "id": dest_path.stem,
+            }
 
         service.download_file(file_id, dest_path)
-        return {"message": "File downloaded", "filename": filename, "id": dest_path.stem}
+        return {
+            "message": "File downloaded",
+            "filename": filename,
+            "id": dest_path.stem,
+        }
 
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
@@ -547,7 +665,11 @@ async def delete_worksheet(worksheet_id: str, user: User = Depends(get_current_u
     if deleted_count == 0:
         raise HTTPException(status_code=404, detail="Worksheet not found")
 
-    return {"message": "Worksheet deleted", "id": worksheet_id, "files_deleted": deleted_count}
+    return {
+        "message": "Worksheet deleted",
+        "id": worksheet_id,
+        "files_deleted": deleted_count,
+    }
 
 
 @router.delete("/worksheets")
@@ -585,7 +707,9 @@ async def list_uploaded_files(user: User = Depends(get_current_user)):
         return []
 
     uploaded_files = []
-    for pdf_path in sorted(scans_dir.glob("*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True):
+    for pdf_path in sorted(
+        scans_dir.glob("*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True
+    ):
         stat = pdf_path.stat()
         file_id = pdf_path.stem
 
@@ -609,16 +733,18 @@ async def list_uploaded_files(user: User = Depends(get_current_user)):
             except (json.JSONDecodeError, KeyError):
                 pass
 
-        uploaded_files.append(UploadedFile(
-            id=file_id,
-            filename=pdf_path.name,
-            uploaded_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
-            size=stat.st_size,
-            is_kumon=is_kumon,
-            sheet_id=sheet_id,
-            student_name=student_name,
-            is_processed=is_processed,
-        ))
+        uploaded_files.append(
+            UploadedFile(
+                id=file_id,
+                filename=pdf_path.name,
+                uploaded_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                size=stat.st_size,
+                is_kumon=is_kumon,
+                sheet_id=sheet_id,
+                student_name=student_name,
+                is_processed=is_processed,
+            )
+        )
 
     return uploaded_files
 

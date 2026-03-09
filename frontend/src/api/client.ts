@@ -218,9 +218,18 @@ export const api = {
     return handleResponse(response);
   },
 
-  async listGDriveFiles(refresh: boolean = false): Promise<GDriveFilesResponse> {
-    const url = refresh ? `${API_BASE}/gdrive/files?refresh=true` : `${API_BASE}/gdrive/files`;
-    const response = await fetch(url);
+  async listGDriveFiles(): Promise<GDriveFilesResponse> {
+    const response = await fetch(`${API_BASE}/gdrive/files`);
+    return handleResponse(response);
+  },
+
+  async startGDriveScan(): Promise<{ status: string }> {
+    const response = await fetch(`${API_BASE}/gdrive/scan`, { method: 'POST' });
+    return handleResponse(response);
+  },
+
+  async getGDriveScanStatus(): Promise<{ status: string; scanned_at: string | null }> {
+    const response = await fetch(`${API_BASE}/gdrive/scan/status`);
     return handleResponse(response);
   },
 
