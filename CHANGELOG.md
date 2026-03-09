@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/meappy/kumon-marker/compare/v1.0.3...v1.1.0) (2026-03-09)
+
+
+### Features
+
+* run Google Drive scan in background so it continues when modal is closed ([#29](https://github.com/meappy/kumon-marker/issues/29)) ([c8e34cc](https://github.com/meappy/kumon-marker/commit/c8e34ccb23ab830a20b6531ba44feae2c13c852f))
+
 ## [1.0.3](https://github.com/meappy/kumon-marker/compare/v1.0.2...v1.0.3) (2026-03-09)
 
 
