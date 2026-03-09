@@ -116,7 +116,7 @@ function WorksheetCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {!ws.has_marked_pdf && (
+          {!ws.has_marked_pdf ? (
             <button
               onClick={() => onProcess(ws.id)}
               disabled={processing === ws.id}
@@ -127,6 +127,24 @@ function WorksheetCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
+            </button>
+          ) : (
+            <button
+              onClick={() => onProcess(ws.id)}
+              disabled={processing === ws.id}
+              className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded disabled:opacity-50"
+              title="Re-mark"
+            >
+              {processing === ws.id ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
             </button>
           )}
           <button
@@ -184,8 +202,12 @@ function WorksheetCard({
 }
 
 export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone }: WorksheetListProps) {
-  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
-  const [groupBy, setGroupBy] = useState<GroupOption>('none');
+  const [sortBy, setSortBy] = useState<SortOption>(() =>
+    (localStorage.getItem('kumon-sortBy') as SortOption) || 'date-desc'
+  );
+  const [groupBy, setGroupBy] = useState<GroupOption>(() =>
+    (localStorage.getItem('kumon-groupBy') as GroupOption) || 'none'
+  );
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,6 +256,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
   // Reset to page 1 when sort or search changes
   const handleSortChange = (newSort: SortOption) => {
     setSortBy(newSort);
+    localStorage.setItem('kumon-sortBy', newSort);
     setCurrentPage(1);
   };
 
@@ -244,6 +267,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
 
   const handleGroupChange = (newGroup: GroupOption) => {
     setGroupBy(newGroup);
+    localStorage.setItem('kumon-groupBy', newGroup);
     setCollapsedGroups(new Set());
     setCurrentPage(1);
   };
