@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/meappy/kumon-marker/compare/v1.0.2...v1.0.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* regenerate favicon from logo.svg to match header branding ([#28](https://github.com/meappy/kumon-marker/issues/28)) ([5e64fac](https://github.com/meappy/kumon-marker/commit/5e64fac478b782aec54279bd3c84e68795c33fe3))
+
 ## [1.0.2](https://github.com/meappy/kumon-marker/compare/v1.0.1...v1.0.2) (2026-03-09)
 
 
