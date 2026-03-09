@@ -19,8 +19,8 @@ from app.core.config import get_effective_setting
 
 def _preprocess_for_ocr(img: Image.Image) -> Image.Image:
     """Pre-process image for better OCR accuracy."""
-    if img.mode != 'L':
-        img = img.convert('L')
+    if img.mode != "L":
+        img = img.convert("L")
     return img
 
 
@@ -36,38 +36,38 @@ def _extract_sheet_id_with_ocr(image_bytes: bytes) -> str | None:
 
         text = pytesseract.image_to_string(
             top_left_processed,
-            config='--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab'
+            config="--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab",
         )
         text_upper = text.upper().strip()
         print(f"OCR raw text (top-left): '{text_upper}'", flush=True)
 
-        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
+        match = re.search(r"([A-Z]\s*\d{1,3}\s*[AB]?)", text_upper)
         if match:
-            sheet_id = re.sub(r'\s+', '', match.group(1))
+            sheet_id = re.sub(r"\s+", "", match.group(1))
             print(f"OCR matched sheet_id: '{sheet_id}'", flush=True)
-            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+            if re.match(r"^[A-Z]\d{1,3}[AB]?$", sheet_id):
                 return sheet_id
 
         # Try with different PSM mode
-        text = pytesseract.image_to_string(top_left_processed, config='--psm 6')
+        text = pytesseract.image_to_string(top_left_processed, config="--psm 6")
         text_upper = text.upper()
         print(f"OCR raw text (psm 6): '{text_upper[:100]}'", flush=True)
 
-        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
+        match = re.search(r"([A-Z]\s*\d{1,3}\s*[AB]?)", text_upper)
         if match:
-            sheet_id = re.sub(r'\s+', '', match.group(1))
-            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+            sheet_id = re.sub(r"\s+", "", match.group(1))
+            if re.match(r"^[A-Z]\d{1,3}[AB]?$", sheet_id):
                 return sheet_id
 
         # Last resort: full image
         img_processed = _preprocess_for_ocr(img)
-        text = pytesseract.image_to_string(img_processed, config='--psm 6')
+        text = pytesseract.image_to_string(img_processed, config="--psm 6")
         text_upper = text.upper()
 
-        match = re.search(r'([A-Z]\s*\d{1,3}\s*[AB]?)', text_upper)
+        match = re.search(r"([A-Z]\s*\d{1,3}\s*[AB]?)", text_upper)
         if match:
-            sheet_id = re.sub(r'\s+', '', match.group(1))
-            if re.match(r'^[A-Z]\d{1,3}[AB]?$', sheet_id):
+            sheet_id = re.sub(r"\s+", "", match.group(1))
+            if re.match(r"^[A-Z]\d{1,3}[AB]?$", sheet_id):
                 return sheet_id
 
     except Exception as e:
@@ -85,7 +85,7 @@ def _extract_topic_with_ocr(image_bytes: bytes) -> str | None:
         top_region = img.crop(crop_box)
         top_region_processed = _preprocess_for_ocr(top_region)
 
-        text = pytesseract.image_to_string(top_region_processed, config='--psm 6')
+        text = pytesseract.image_to_string(top_region_processed, config="--psm 6")
         text_lower = text.lower()
         print(f"OCR topic text: '{text_lower[:100]}'", flush=True)
 
@@ -146,8 +146,12 @@ def _validate_with_vision(image_bytes: bytes) -> ValidationResult:
 
     prompt = """Look at this image and determine if it's a Kumon worksheet.
 
-The sheet ID is printed in the TOP LEFT corner (e.g., "D166a", "B161a", "C26a", "O5a").
-It's a single letter followed by 1-3 digits, optionally followed by 'a' or 'b'.
+The sheet ID is printed in the TOP LEFT corner (e.g., "D166a", "B161a", "C26a", "B71a").
+It consists of: one uppercase letter + 1 to 3 DIGITS + optionally 'a' or 'b'.
+READ EVERY DIGIT CAREFULLY — do not skip or drop any digits. For example, "B71a" has TWO digits (7 and 1), not one.
+
+ALSO CHECK the TOP RIGHT corner — Kumon worksheets often print the letter and number again there (e.g., "B 71") which can help confirm the sheet ID.
+
 The topic is printed below or near the sheet ID (e.g., "Reduction", "Addition", "Subtraction", "Division", "Multiplication", "Fractions", "Integration").
 The student name is handwritten in the "Name" field.
 
@@ -179,7 +183,9 @@ Only respond with the JSON, nothing else."""
     return ValidationResult(is_kumon=False)
 
 
-def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> ValidationResult:
+def validate_kumon_from_bytes(
+    pdf_bytes: bytes, extract_name: bool = True
+) -> ValidationResult:
     """Validate that PDF bytes represent a Kumon worksheet.
 
     First tries text extraction, falls back to configured validation method.
@@ -189,7 +195,8 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
         text = doc[0].get_text()
         text_upper = text.upper()
 
-        pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
+        # Use higher DPI (200) for validation to improve digit recognition
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(200 / 72, 200 / 72))
         image_bytes = pix.tobytes("png")
         doc.close()
 
@@ -201,14 +208,15 @@ def validate_kumon_from_bytes(pdf_bytes: bytes, extract_name: bool = True) -> Va
             return _validate_with_vision(image_bytes)
 
         # Text-based validation (faster, no API cost)
-        sheet_match = re.search(r'\b([A-Z]\s*\d+\s*[ab]?)\b', text_upper)
-        sheet_id = re.sub(r'\s+', '', sheet_match.group(1)) if sheet_match else None
+        sheet_match = re.search(r"\b([A-Z]\s*\d+\s*[ABab]?)\b", text_upper)
+        sheet_id = re.sub(r"\s+", "", sheet_match.group(1)) if sheet_match else None
 
         # Extract student name using vision model (handwriting recognition)
         student_name = None
         if extract_name:
             try:
                 from app.services.ocr import extract_name_with_vision
+
                 student_name = extract_name_with_vision(image_bytes)
             except Exception as e:
                 print(f"Name extraction error: {e}")
@@ -244,7 +252,8 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         if not text.strip() or "KUMON" not in text_upper:
             if not text.strip():
                 print("No text layer found...")
-            pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
+            # Use higher DPI (200) for validation to improve digit recognition
+            pix = doc[0].get_pixmap(matrix=fitz.Matrix(200 / 72, 200 / 72))
             image_bytes = pix.tobytes("png")
             doc.close()
 
@@ -273,8 +282,8 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         doc.close()
 
         # Text-based validation (faster, no API cost)
-        sheet_match = re.search(r'\b([A-Z]\s*\d+\s*[ab]?)\b', text_upper)
-        sheet_id = re.sub(r'\s+', '', sheet_match.group(1)) if sheet_match else None
+        sheet_match = re.search(r"\b([A-Z]\s*\d+\s*[ABab]?)\b", text_upper)
+        sheet_id = re.sub(r"\s+", "", sheet_match.group(1)) if sheet_match else None
 
         return ValidationResult(
             is_kumon=True,
@@ -293,7 +302,7 @@ def extract_sheet_info(sheet_id: str | None) -> tuple[str, int]:
     if not sheet_id:
         return "B", 161
 
-    match = re.match(r'([A-Z])(\d+)', sheet_id)
+    match = re.match(r"([A-Z])(\d+)", sheet_id)
     if match:
         return match.group(1), int(match.group(2))
     return "B", 161
