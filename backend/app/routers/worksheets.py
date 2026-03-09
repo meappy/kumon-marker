@@ -22,7 +22,7 @@ from app.services.checker import validate_kumon_worksheet, extract_sheet_info
 from app.services.ocr import analyse_worksheet
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
-from app.services.gdrive import GDriveService
+from app.services.gdrive import GDriveService, update_gdrive_cache_sheet_id
 from app.services.queue import create_and_queue_job, is_queue_enabled
 from app.core.config import settings, get_effective_setting
 from app.core.session import (
@@ -321,6 +321,10 @@ async def _do_process_worksheet(
         reports_dir.mkdir(parents=True, exist_ok=True)
         report_path = reports_dir / f"{worksheet_id}_report.pdf"
         create_report(report_path, results, pdf_path.name, student_name)
+
+        # Update GDrive cache with corrected sheet_id from vision model
+        if validation.sheet_id:
+            update_gdrive_cache_sheet_id(data_dir, worksheet_id, validation.sheet_id)
 
     except Exception as e:
         print(f"Error processing worksheet {worksheet_id}: {e}")

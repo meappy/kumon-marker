@@ -12,6 +12,7 @@ from app.core.session import get_user_data_dir
 from app.models.job import JobStatus, init_db
 from app.services.queue import QUEUE_NAME, update_job_status
 from app.services.checker import validate_kumon_worksheet, extract_sheet_info
+from app.services.gdrive import update_gdrive_cache_sheet_id
 from app.services.ocr import (
     analyse_worksheet,
     extract_name_with_vision,
@@ -132,6 +133,10 @@ def process_worksheet(
         reports_dir.mkdir(parents=True, exist_ok=True)
         report_path = reports_dir / f"{worksheet_id}_report.pdf"
         create_report(report_path, results, pdf_path.name, student_name)
+
+        # Update GDrive cache with corrected sheet_id from vision model
+        if validation.sheet_id:
+            update_gdrive_cache_sheet_id(data_dir, worksheet_id, validation.sheet_id)
 
         # Mark as completed
         update_job_status(job_id, JobStatus.COMPLETED, progress=100)
