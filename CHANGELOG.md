@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/meappy/kumon-marker/compare/v1.2.0...v1.3.0) (2026-03-09)
+
+
+### Features
+
+* persist sort/group preferences and add re-mark button ([#33](https://github.com/meappy/kumon-marker/issues/33)) ([981baf7](https://github.com/meappy/kumon-marker/commit/981baf7545c05c45b9c4aed65929c20ce368a041))
+
 # [1.2.0](https://github.com/meappy/kumon-marker/compare/v1.1.2...v1.2.0) (2026-03-09)
 
 
