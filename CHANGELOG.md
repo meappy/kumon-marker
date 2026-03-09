@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/meappy/kumon-marker/compare/v1.1.0...v1.1.1) (2026-03-09)
+
+
+### Bug Fixes
+
+* improve vision model sheet ID extraction accuracy ([#30](https://github.com/meappy/kumon-marker/issues/30)) ([a891d13](https://github.com/meappy/kumon-marker/commit/a891d1301e7b995ec1d2d4de9cb03ead3b49a959))
+
 # [1.1.0](https://github.com/meappy/kumon-marker/compare/v1.0.3...v1.1.0) (2026-03-09)
 
 
