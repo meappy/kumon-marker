@@ -391,7 +391,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
             <button
               onClick={onDeleteAll}
               disabled={deleting === 'all'}
-              className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50"
+              className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50 whitespace-nowrap"
             >
               {deleting === 'all' ? 'Deleting...' : 'Delete All'}
             </button>
