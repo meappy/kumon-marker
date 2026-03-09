@@ -183,6 +183,75 @@ Only respond with the JSON, nothing else."""
     return ValidationResult(is_kumon=False)
 
 
+def _fix_ocr_text(text: str) -> str:
+    """Fix common OCR substitution errors in scanned text.
+
+    Brother scanners often embed low-quality OCR that confuses similar chars.
+    """
+    replacements = {
+        "I": "1",  # capital I → 1
+        "l": "1",  # lowercase L → 1
+        "O": "0",  # capital O → 0
+        "S": "5",  # S → 5
+        "Z": "2",  # Z → 2
+    }
+    result = []
+    for ch in text:
+        result.append(replacements.get(ch, ch))
+    return "".join(result)
+
+
+def _extract_sheet_id_from_text(text: str) -> str | None:
+    """Extract Kumon sheet ID from PDF text layer.
+
+    Handles poor OCR quality by checking the first line (where sheet ID
+    always appears) and applying common OCR error corrections.
+    """
+    text_upper = text.upper()
+
+    # Try the first line first — sheet ID is always at the top
+    first_line = text_upper.split("\n")[0].strip()
+    print(f"Text layer first line: {repr(first_line)}", flush=True)
+
+    # Apply OCR corrections to first line and try to match
+    fixed_first = _fix_ocr_text(first_line)
+    match = re.match(r"^([A-Z])(\d{1,3})([AB]?)\b", fixed_first)
+    if match:
+        sheet_id = f"{match.group(1)}{match.group(2)}{match.group(3)}"
+        print(f"Sheet ID from first line (OCR-corrected): {sheet_id}", flush=True)
+        return sheet_id
+
+    # Also try matching the original first line (in case OCR was fine)
+    match = re.match(r"^([A-Z])\s*(\d{1,3})\s*([ABab]?)", first_line)
+    if match:
+        sheet_id = f"{match.group(1)}{match.group(2)}{match.group(3).upper()}"
+        print(f"Sheet ID from first line: {sheet_id}", flush=True)
+        return sheet_id
+
+    # Fallback: search entire text (less reliable due to false matches)
+    sheet_match = re.search(r"\b([A-Z]\s*\d+\s*[ABab]?)\b", text_upper)
+    if sheet_match:
+        sheet_id = re.sub(r"\s+", "", sheet_match.group(1))
+        print(f"Sheet ID from full text search: {sheet_id}", flush=True)
+        return sheet_id
+
+    return None
+
+
+def _is_kumon_text(text_upper: str) -> bool:
+    """Check if text contains Kumon markers, tolerating OCR errors."""
+    # Exact match
+    if "KUMON" in text_upper:
+        return True
+    # Common OCR misreads: KUMQN, KUM0N, KUMDN
+    if re.search(r"KUM[O0Q][MN]", text_upper):
+        return True
+    # Check for Kumon-specific phrases
+    if "KUMON INSTITUTE" in text_upper or "© 20" in text_upper:
+        return True
+    return False
+
+
 def validate_kumon_from_bytes(
     pdf_bytes: bytes, extract_name: bool = True
 ) -> ValidationResult:
@@ -200,16 +269,15 @@ def validate_kumon_from_bytes(
         image_bytes = pix.tobytes("png")
         doc.close()
 
-        if not text.strip() or "KUMON" not in text_upper:
+        if not text.strip() or not _is_kumon_text(text_upper):
             if not text.strip():
                 print("No text layer found, using vision model for validation...")
             else:
                 print("No KUMON keyword in text, using vision model for validation...")
             return _validate_with_vision(image_bytes)
 
-        # Text-based validation (faster, no API cost)
-        sheet_match = re.search(r"\b([A-Z]\s*\d+\s*[ABab]?)\b", text_upper)
-        sheet_id = re.sub(r"\s+", "", sheet_match.group(1)) if sheet_match else None
+        # Text-based validation with OCR error correction
+        sheet_id = _extract_sheet_id_from_text(text)
 
         # Extract student name using vision model (handwriting recognition)
         student_name = None
@@ -239,7 +307,7 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
 
     Respects the validation_method setting:
     - "ocr": Text layer -> Tesseract OCR -> vision fallback
-    - "llm": Text layer -> vision provider directly (skips OCR)
+    - "llm": Always use vision provider (scanner OCR text is unreliable)
     """
     validation_method = get_effective_setting("validation_method", "ocr")
 
@@ -248,18 +316,21 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         text = doc[0].get_text()
         text_upper = text.upper()
 
+        # Use higher DPI (200) for validation to improve digit recognition
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(200 / 72, 200 / 72))
+        image_bytes = pix.tobytes("png")
+        doc.close()
+
+        # When validation_method is "llm", always use vision model.
+        # Scanner-embedded OCR is too unreliable (e.g. I→1, O→0, 7→6).
+        if validation_method == "llm":
+            print("Using LLM vision provider for validation...")
+            return _validate_with_vision(image_bytes)
+
         # If no text layer or no KUMON keyword, use configured fallback
-        if not text.strip() or "KUMON" not in text_upper:
+        if not text.strip() or not _is_kumon_text(text_upper):
             if not text.strip():
                 print("No text layer found...")
-            # Use higher DPI (200) for validation to improve digit recognition
-            pix = doc[0].get_pixmap(matrix=fitz.Matrix(200 / 72, 200 / 72))
-            image_bytes = pix.tobytes("png")
-            doc.close()
-
-            if validation_method == "llm":
-                print("Using LLM vision provider for validation...")
-                return _validate_with_vision(image_bytes)
 
             # OCR method: try Tesseract first, then vision fallback
             print("Trying OCR extraction...")
@@ -279,11 +350,8 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
             print("OCR did not find sheet ID, falling back to vision model...")
             return _validate_with_vision(image_bytes)
 
-        doc.close()
-
-        # Text-based validation (faster, no API cost)
-        sheet_match = re.search(r"\b([A-Z]\s*\d+\s*[ABab]?)\b", text_upper)
-        sheet_id = re.sub(r"\s+", "", sheet_match.group(1)) if sheet_match else None
+        # Text-based validation with OCR error correction
+        sheet_id = _extract_sheet_id_from_text(text)
 
         return ValidationResult(
             is_kumon=True,
