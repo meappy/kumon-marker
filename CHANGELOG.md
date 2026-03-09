@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/meappy/kumon-marker/compare/v1.1.1...v1.1.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* always use vision model for sheet ID when validation is llm ([#31](https://github.com/meappy/kumon-marker/issues/31)) ([037b2ef](https://github.com/meappy/kumon-marker/commit/037b2ef03c8d6550ec1ccb7c8814e2ea3bcaf381))
+
 ## [1.1.1](https://github.com/meappy/kumon-marker/compare/v1.1.0...v1.1.1) (2026-03-09)
 
 
