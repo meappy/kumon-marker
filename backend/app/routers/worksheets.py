@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks, Depends
 
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from app.models.schemas import (
     WorksheetSummary,
@@ -626,6 +626,23 @@ async def sync_from_gdrive(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Download error: {e}")
+
+
+@router.get("/gdrive/preview/{file_id}")
+async def preview_gdrive_file(file_id: str, user: User = Depends(get_current_user)):
+    """Stream a PDF from Google Drive for preview."""
+    try:
+        service = get_gdrive_service(user)
+        pdf_bytes = service.download_file_bytes(file_id)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "inline"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Preview error: {e}")
 
 
 @router.post("/worksheets/{worksheet_id}/regenerate-report")
