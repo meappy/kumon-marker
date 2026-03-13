@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/meappy/kumon-marker/compare/v1.4.1...v1.5.0) (2026-03-13)
+
+
+### Features
+
+* add PDF preview for Google Drive files ([#38](https://github.com/meappy/kumon-marker/issues/38)) ([2849d7d](https://github.com/meappy/kumon-marker/commit/2849d7daae79331fb88bd7f8e18974001028e41c))
+
 ## [1.4.1](https://github.com/meappy/kumon-marker/compare/v1.4.0...v1.4.1) (2026-03-09)
 
 
