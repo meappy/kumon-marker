@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { api } from '../api/client';
 import type { GDriveFile, WorksheetSummary, Job } from '../api/client';
 import { formatSheetName } from '../utils/kumon';
+import { PdfPreviewModal } from './PdfPreviewModal';
 
 interface QueueItem {
   fileId: string;
@@ -131,6 +132,7 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<GDriveFile | null>(null);
 
   // Queue management
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -407,6 +409,17 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
                   )}
                 </div>
                 <div className="flex items-center gap-1">
+                  {/* Preview button */}
+                  <button
+                    onClick={() => setPreviewFile(file)}
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Preview PDF"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
                   {/* Queue-based status (when RabbitMQ is enabled) */}
                 {queueEnabled && activeJob ? (
                   jobCompleted ? (
@@ -529,6 +542,18 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
           </button>
         </div>
       </div>
+
+      {/* PDF Preview */}
+      {previewFile && (
+        <PdfPreviewModal
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+          pdfUrl={`/api/gdrive/preview/${previewFile.id}`}
+          downloadUrl={`/api/gdrive/preview/${previewFile.id}`}
+          title={formatSheetName(previewFile.sheet_id) || previewFile.name}
+          filename={previewFile.name}
+        />
+      )}
     </div>
   );
 }
