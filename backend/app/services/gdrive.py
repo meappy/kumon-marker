@@ -93,7 +93,7 @@ class GDriveService:
         files = results.get("files", [])
         return files[0]["id"] if files else None
 
-    def list_pdfs(self, folder_name: str, limit: int = 20) -> list[GDriveFile]:
+    def list_pdfs(self, folder_name: str, limit: int = 50) -> list[GDriveFile]:
         """List PDF files in a folder, sorted by date (newest first)."""
         folder_id = self.find_folder_id(folder_name)
         if not folder_id:

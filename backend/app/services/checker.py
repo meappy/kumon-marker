@@ -420,6 +420,22 @@ def validate_kumon_worksheet(pdf_path: Path) -> ValidationResult:
         return ValidationResult(is_kumon=False)
 
 
+def validate_kumon_worksheet_from_bytes(pdf_bytes: bytes) -> ValidationResult:
+    """Validate a Kumon worksheet from in-memory PDF bytes.
+
+    Used by GDrive scan when text layer check fails and LLM validation is enabled.
+    """
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(200 / 72, 200 / 72))
+        image_bytes = pix.tobytes("png")
+        doc.close()
+        return _validate_with_vision(image_bytes)
+    except Exception as e:
+        print(f"Validation from bytes error: {e}")
+        return ValidationResult(is_kumon=False)
+
+
 def extract_sheet_info(sheet_id: str | None) -> tuple[str, int]:
     """Extract prefix and base number from sheet ID."""
     if not sheet_id:

@@ -18,7 +18,11 @@ from app.models.schemas import (
     HealthResponse,
     UploadedFile,
 )
-from app.services.checker import validate_kumon_worksheet, extract_sheet_info
+from app.services.checker import (
+    validate_kumon_worksheet,
+    validate_kumon_worksheet_from_bytes,
+    extract_sheet_info,
+)
 from app.services.ocr import analyse_worksheet
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
@@ -436,6 +440,7 @@ def _scan_gdrive_files_sync(
 
             # Extract sheet_id from text layer (e.g., "D166A", "B 161", "C26 a")
             text_sheet_id = None
+            student_name = None
             if is_kumon:
                 # Look for sheet ID pattern: Letter + digits + optional a/b
                 # Handle spaces that might be in scanned text
@@ -447,6 +452,22 @@ def _scan_gdrive_files_sync(
                     text_sheet_id = f"{letter}{number}{suffix}"
                     print(f"Extracted sheet_id from text layer: {text_sheet_id}")
 
+            # If text layer failed and LLM validation is configured, use vision
+            if not is_kumon and get_effective_setting("validation_method") == "llm":
+                print(
+                    f"Text layer empty/failed for '{f.name}', falling back to LLM vision"
+                )
+                try:
+                    validation = validate_kumon_worksheet_from_bytes(pdf_bytes)
+                    is_kumon = validation.is_kumon
+                    text_sheet_id = validation.sheet_id
+                    student_name = validation.student_name
+                    print(
+                        f"LLM vision result for '{f.name}': is_kumon={is_kumon}, sheet_id={text_sheet_id}"
+                    )
+                except Exception as vision_err:
+                    print(f"LLM vision fallback failed for '{f.name}': {vision_err}")
+
             validated_files.append(
                 GDriveFile(
                     id=f.id,
@@ -455,7 +476,7 @@ def _scan_gdrive_files_sync(
                     size=f.size,
                     is_kumon=is_kumon,
                     sheet_id=text_sheet_id,
-                    student_name=None,
+                    student_name=student_name,
                 )
             )
         except Exception as e:
