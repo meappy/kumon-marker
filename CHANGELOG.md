@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/meappy/kumon-marker/compare/v1.5.2...v1.5.3) (2026-03-15)
+
+
+### Bug Fixes
+
+* use broader regex KUM.N for OCR misreadings of KUMON in GDrive scan ([#41](https://github.com/meappy/kumon-marker/issues/41)) ([51e6249](https://github.com/meappy/kumon-marker/commit/51e624940bb69209bed57377f659922f842e56f2))
+
 ## [1.5.2](https://github.com/meappy/kumon-marker/compare/v1.5.1...v1.5.2) (2026-03-15)
 
 
