@@ -433,7 +433,8 @@ def _scan_gdrive_files_sync(
             text = doc[0].get_text().upper() if doc.page_count > 0 else ""
             doc.close()
 
-            is_kumon = "KUMON" in text
+            # Check for "KUMON" with common OCR misreadings (O→Q, O→0, etc.)
+            is_kumon = bool(re.search(r"KUM[OQ0][NM]", text))
             print(
                 f"Text check for '{f.name}': {'KUMON found' if is_kumon else 'not Kumon'}"
             )
