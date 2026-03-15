@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/meappy/kumon-marker/compare/v1.5.3...v1.5.4) (2026-03-15)
+
+
+### Bug Fixes
+
+* only use LLM fallback for truly image-only PDFs with no text layer ([#42](https://github.com/meappy/kumon-marker/issues/42)) ([b5f96ed](https://github.com/meappy/kumon-marker/commit/b5f96ed02666b34cb95d629180a7e816f2840681))
+
 ## [1.5.3](https://github.com/meappy/kumon-marker/compare/v1.5.2...v1.5.3) (2026-03-15)
 
 
