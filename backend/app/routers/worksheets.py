@@ -453,11 +453,13 @@ def _scan_gdrive_files_sync(
                     text_sheet_id = f"{letter}{number}{suffix}"
                     print(f"Extracted sheet_id from text layer: {text_sheet_id}")
 
-            # If text layer failed and LLM validation is configured, use vision
-            if not is_kumon and get_effective_setting("validation_method") == "llm":
-                print(
-                    f"Text layer empty/failed for '{f.name}', falling back to LLM vision"
-                )
+            # Only fall back to LLM if text layer is empty (true image-only PDF)
+            if (
+                not is_kumon
+                and not text.strip()
+                and get_effective_setting("validation_method") == "llm"
+            ):
+                print(f"No text layer for '{f.name}', falling back to LLM vision")
                 try:
                     validation = validate_kumon_worksheet_from_bytes(pdf_bytes)
                     is_kumon = validation.is_kumon
