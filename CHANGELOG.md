@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/meappy/kumon-marker/compare/v1.5.0...v1.5.1) (2026-03-15)
+
+
+### Bug Fixes
+
+* use LLM vision fallback when GDrive scan text layer check fails ([#39](https://github.com/meappy/kumon-marker/issues/39)) ([35071d4](https://github.com/meappy/kumon-marker/commit/35071d457a619aabb881cb4d34c9b28aecdb1cf6))
+
 # [1.5.0](https://github.com/meappy/kumon-marker/compare/v1.4.1...v1.5.0) (2026-03-13)
 
 
