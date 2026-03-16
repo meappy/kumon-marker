@@ -133,8 +133,9 @@ rabbitmq:
       memory: 256Mi
 
 # PostgreSQL configuration
+# When disabled, uses external managed PostgreSQL (host/password in secrets repo)
 postgresql:
-  enabled: true
+  enabled: false
   image: postgres:16-alpine
   port: 5432
   database: kumon
@@ -153,6 +154,14 @@ postgresql:
     requests:
       cpu: 100m
       memory: 256Mi
+
+# External database connection — host/credentials set in secrets repo
+database:
+  host: ""
+  port: "25060"
+  name: "kumon"
+  user: "kumon"
+  driver: "postgresql"
 
 # Worker configuration
 worker:
