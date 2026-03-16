@@ -159,7 +159,7 @@ postgresql:
 database:
   host: ""
   port: "25060"
-  name: "kumon"
+  name: "kumon-marker"
   user: "kumon"
   driver: "postgresql"
 
