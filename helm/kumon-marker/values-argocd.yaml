@@ -25,11 +25,11 @@ persistence:
 
 resources:
   limits:
-    cpu: 1000m
-    memory: 1Gi
-  requests:
-    cpu: 100m
+    cpu: 500m
     memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
 
 config:
   visionProvider: "anthropic"
@@ -72,3 +72,10 @@ postgresql:
 worker:
   enabled: true
   replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
