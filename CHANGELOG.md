@@ -1,3 +1,10 @@
+## [1.7.8](https://github.com/meappy/kumon-marker/compare/v1.7.7...v1.7.8) (2026-03-16)
+
+
+### Bug Fixes
+
+* move database port to secrets repo ([#52](https://github.com/meappy/kumon-marker/issues/52)) ([98e9a92](https://github.com/meappy/kumon-marker/commit/98e9a921358edd6fc45635d9f2793def9f7ab9a0))
+
 ## [1.7.7](https://github.com/meappy/kumon-marker/compare/v1.7.6...v1.7.7) (2026-03-16)
 
 
