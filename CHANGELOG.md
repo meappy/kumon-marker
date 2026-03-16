@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/meappy/kumon-marker/compare/v1.7.2...v1.7.3) (2026-03-16)
+
+
+### Bug Fixes
+
+* add email-validator dependency to resolve pydantic import error ([#47](https://github.com/meappy/kumon-marker/issues/47)) ([a226c46](https://github.com/meappy/kumon-marker/commit/a226c46035f623d45bcf3750ee5e27ffbc8b9150))
+
 ## [1.7.2](https://github.com/meappy/kumon-marker/compare/v1.7.1...v1.7.2) (2026-03-16)
 
 
