@@ -107,8 +107,13 @@ spec:
                   name: {{ include "kumon-marker.secretName" . }}
                   key: postgresql-password
                   optional: true
+            {{- if .Values.postgresql.enabled }}
             - name: DATABASE_URL
               value: "postgresql://{{ .Values.postgresql.username }}:$(POSTGRESQL_PASSWORD)@{{ include "kumon-marker.fullname" . }}-postgresql:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
+            {{- else if .Values.database }}
+            - name: DATABASE_URL
+              value: "{{ .Values.database.driver | default "postgresql" }}://{{ .Values.database.user }}:$(POSTGRESQL_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}"
+            {{- end }}
           volumeMounts:
             - name: data
               mountPath: /app/data
