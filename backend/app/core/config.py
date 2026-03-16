@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # API
     app_name: str = "Kumon Marker"
-    app_version: str = "1.7.5"  # Can be overridden by APP_VERSION env var
+    app_version: str = "1.7.6"  # Can be overridden by APP_VERSION env var
     image_tag: str = "local"  # Container image tag, set by IMAGE_TAG env var
     debug: bool = False
 

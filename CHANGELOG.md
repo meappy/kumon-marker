@@ -1,3 +1,10 @@
+## [1.7.6](https://github.com/meappy/kumon-marker/compare/v1.7.5...v1.7.6) (2026-03-16)
+
+
+### Bug Fixes
+
+* reduce RabbitMQ and default resource limits ([#50](https://github.com/meappy/kumon-marker/issues/50)) ([85484d2](https://github.com/meappy/kumon-marker/commit/85484d2d940ab7e8865b0562671e65c0ce23e0b3))
+
 ## [1.7.5](https://github.com/meappy/kumon-marker/compare/v1.7.4...v1.7.5) (2026-03-16)
 
 
