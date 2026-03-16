@@ -1,3 +1,10 @@
+## [1.7.5](https://github.com/meappy/kumon-marker/compare/v1.7.4...v1.7.5) (2026-03-16)
+
+
+### Bug Fixes
+
+* reduce memory limits to 256Mi ([#49](https://github.com/meappy/kumon-marker/issues/49)) ([d88a1fc](https://github.com/meappy/kumon-marker/commit/d88a1fca46c3b66dba7dfceafe32f365772b108c))
+
 ## [1.7.4](https://github.com/meappy/kumon-marker/compare/v1.7.3...v1.7.4) (2026-03-16)
 
 
