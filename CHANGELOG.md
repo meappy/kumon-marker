@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/meappy/kumon-marker/compare/v1.7.10...v1.8.0) (2026-03-16)
+
+
+### Features
+
+* make DB pool settings configurable via env vars ([#55](https://github.com/meappy/kumon-marker/issues/55)) ([326883c](https://github.com/meappy/kumon-marker/commit/326883cc33c6b32a8754c829a71bff6d210bddf0))
+
 ## [1.7.10](https://github.com/meappy/kumon-marker/compare/v1.7.9...v1.7.10) (2026-03-16)
 
 
