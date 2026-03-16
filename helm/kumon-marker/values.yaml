@@ -158,7 +158,7 @@ postgresql:
 # External database connection — host/credentials set in secrets repo
 database:
   host: ""
-  port: "25060"
+  port: ""
   name: "kumon-marker"
   user: "kumon"
   driver: "postgresql"
