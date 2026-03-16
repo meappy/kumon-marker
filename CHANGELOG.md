@@ -1,3 +1,10 @@
+## [1.7.4](https://github.com/meappy/kumon-marker/compare/v1.7.3...v1.7.4) (2026-03-16)
+
+
+### Bug Fixes
+
+* reduce memory limits for DO cluster ([#48](https://github.com/meappy/kumon-marker/issues/48)) ([c875c0a](https://github.com/meappy/kumon-marker/commit/c875c0a7f58b6c8efea293a4d67b4857d8ee0bb8))
+
 ## [1.7.3](https://github.com/meappy/kumon-marker/compare/v1.7.2...v1.7.3) (2026-03-16)
 
 
