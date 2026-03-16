@@ -1,11 +1,11 @@
-"""Job model for tracking worksheet processing status."""
+"""Database models for job tracking and dashboard sharing."""
 
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import String, Integer, DateTime, Text, create_engine
+from sqlalchemy import String, Integer, DateTime, Text, create_engine, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session, sessionmaker
 
 from app.core.config import settings
@@ -13,6 +13,7 @@ from app.core.config import settings
 
 class JobStatus(str, Enum):
     """Job status values."""
+
     QUEUED = "queued"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -20,8 +21,16 @@ class JobStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class SharePermission(str, Enum):
+    """Share permission levels."""
+
+    READ = "read"
+    READWRITE = "readwrite"
+
+
 class Base(DeclarativeBase):
     """SQLAlchemy declarative base."""
+
     pass
 
 
@@ -30,15 +39,49 @@ class Job(Base):
 
     __tablename__ = "jobs"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
     worksheet_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default=JobStatus.QUEUED.value)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=JobStatus.QUEUED.value
+    )
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class Share(Base):
+    """Share model for dashboard sharing between users."""
+
+    __tablename__ = "shares"
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_user_id", "shared_with_email", name="uq_share_owner_email"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    owner_user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    owner_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    owner_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    shared_with_email: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True
+    )
+    permission: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=SharePermission.READ.value
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     def to_dict(self) -> dict:
         """Convert job to dictionary for API responses."""
@@ -51,7 +94,9 @@ class Job(Base):
             "error": self.error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
         }
 
 

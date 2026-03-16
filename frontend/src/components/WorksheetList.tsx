@@ -12,6 +12,7 @@ interface WorksheetListProps {
   processing: string | null;
   deleting: string | null;
   timezone?: string;
+  readOnly?: boolean;
 }
 
 function getTimezoneAbbr(date: Date, timezone?: string): string {
@@ -72,6 +73,7 @@ interface WorksheetCardProps {
   openMarkedPreview: (ws: WorksheetSummary) => void;
   openReportPreview: (ws: WorksheetSummary) => void;
   showStudentName?: boolean;
+  readOnly?: boolean;
 }
 
 function WorksheetCard({
@@ -85,6 +87,7 @@ function WorksheetCard({
   openMarkedPreview,
   openReportPreview,
   showStudentName = true,
+  readOnly = false,
 }: WorksheetCardProps) {
   return (
     <div className="bg-white p-3 sm:p-4">
@@ -116,36 +119,38 @@ function WorksheetCard({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {!ws.has_marked_pdf ? (
-            <button
-              onClick={() => onProcess(ws.id)}
-              disabled={processing === ws.id}
-              className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-              title="Process"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={() => onProcess(ws.id)}
-              disabled={processing === ws.id}
-              className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded disabled:opacity-50"
-              title="Re-mark"
-            >
-              {processing === ws.id ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
+          {!readOnly && (
+            !ws.has_marked_pdf ? (
+              <button
+                onClick={() => onProcess(ws.id)}
+                disabled={processing === ws.id}
+                className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                title="Process"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-              )}
-            </button>
+              </button>
+            ) : (
+              <button
+                onClick={() => onProcess(ws.id)}
+                disabled={processing === ws.id}
+                className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded disabled:opacity-50"
+                title="Re-mark"
+              >
+                {processing === ws.id ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+            )
           )}
           <button
             onClick={() => openOriginalPreview(ws)}
@@ -178,30 +183,32 @@ function WorksheetCard({
               </svg>
             </button>
           )}
-          <button
-            onClick={() => onDelete(ws.id)}
-            disabled={deleting === ws.id}
-            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
-            title="Delete"
-          >
-            {deleting === ws.id ? (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            )}
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => onDelete(ws.id)}
+              disabled={deleting === ws.id}
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+              title="Delete"
+            >
+              {deleting === ws.id ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone }: WorksheetListProps) {
+export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, processing, deleting, timezone, readOnly = false }: WorksheetListProps) {
   const [sortBy, setSortBy] = useState<SortOption>(() =>
     (localStorage.getItem('kumon-sortBy') as SortOption) || 'date-desc'
   );
@@ -388,13 +395,15 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
               <option value="score-desc">Highest score</option>
               <option value="score-asc">Lowest score</option>
             </select>
-            <button
-              onClick={onDeleteAll}
-              disabled={deleting === 'all'}
-              className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50 whitespace-nowrap"
-            >
-              {deleting === 'all' ? 'Deleting...' : 'Delete All'}
-            </button>
+            {!readOnly && (
+              <button
+                onClick={onDeleteAll}
+                disabled={deleting === 'all'}
+                className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50 whitespace-nowrap"
+              >
+                {deleting === 'all' ? 'Deleting...' : 'Delete All'}
+              </button>
+            )}
           </div>
         </div>
         {sortedWorksheets.length === 0 && searchQuery && (
@@ -447,6 +456,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
                       openOriginalPreview={openOriginalPreview}
                       openMarkedPreview={openMarkedPreview}
                       openReportPreview={openReportPreview}
+                      readOnly={readOnly}
                       showStudentName={false}
                     />
                   ))}
@@ -470,6 +480,7 @@ export function WorksheetList({ worksheets, onProcess, onDelete, onDeleteAll, pr
               openMarkedPreview={openMarkedPreview}
               openReportPreview={openReportPreview}
               showStudentName={true}
+              readOnly={readOnly}
             />
           </div>
         ))}

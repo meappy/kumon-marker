@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.routers import worksheets, auth, settings as settings_router, jobs
+from app.routers import worksheets, auth, settings as settings_router, jobs, sharing
 
 app = FastAPI(
     title=settings.app_name,
@@ -29,6 +29,7 @@ app.include_router(worksheets.router, prefix="/api", tags=["worksheets"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(settings_router.router, prefix="/api", tags=["settings"])
 app.include_router(jobs.router, prefix="/api", tags=["jobs"])
+app.include_router(sharing.router, prefix="/api", tags=["sharing"])
 
 # Serve static frontend (when built)
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"

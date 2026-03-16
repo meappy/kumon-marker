@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { api } from './api/client';
-import type { WorksheetSummary, AuthStatus, Job } from './api/client';
+import { api, setViewContext } from './api/client';
+import type { WorksheetSummary, AuthStatus, Job, SharedWithMeEntry } from './api/client';
 import { Header } from './components/Header';
 import { Uploader } from './components/Uploader';
 import { WorksheetList } from './components/WorksheetList';
 import { GDriveModal } from './components/GDriveModal';
 import { UploadedFilesModal } from './components/UploadedFilesModal';
 import { SettingsModal } from './components/SettingsModal';
+import { SharingModal } from './components/SharingModal';
 import { LoginPage } from './components/LoginPage';
 import { QueuePanel } from './components/QueuePanel';
 
@@ -25,7 +26,12 @@ function App() {
   const [showUploads, setShowUploads] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showSharing, setShowSharing] = useState(false);
   const [, setSyncing] = useState(false);
+
+  // Sharing state
+  const [sharedDashboards, setSharedDashboards] = useState<SharedWithMeEntry[]>([]);
+  const [viewingDashboard, setViewingDashboard] = useState<SharedWithMeEntry | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [timezone, setTimezone] = useState<string>('Australia/Sydney');
 
@@ -95,12 +101,32 @@ function App() {
     }
   }, []);
 
+  const loadSharedDashboards = useCallback(async () => {
+    try {
+      const data = await api.getSharedWithMe();
+      setSharedDashboards(data);
+    } catch {
+      // Ignore - sharing may not be available if DB is not configured
+    }
+  }, []);
+
+  const handleSwitchDashboard = useCallback(
+    (dashboard: SharedWithMeEntry | null) => {
+      setViewingDashboard(dashboard);
+      setViewContext(dashboard?.owner_user_id ?? null);
+      setLoading(true);
+      loadWorksheets();
+    },
+    [loadWorksheets]
+  );
+
   useEffect(() => {
     if (authStatus?.authenticated) {
       loadWorksheets();
       loadSettings();
+      loadSharedDashboards();
     }
-  }, [authStatus?.authenticated, loadWorksheets, loadSettings]);
+  }, [authStatus?.authenticated, loadWorksheets, loadSettings, loadSharedDashboards]);
 
   // Poll job status when there are active jobs
   const pollJobStatus = useCallback(async () => {
@@ -268,8 +294,13 @@ function App() {
         onUploadsClick={() => setShowUploads(true)}
         onQueueClick={() => setShowQueue(true)}
         onSettingsClick={() => setShowSettings(true)}
+        onSharingClick={() => setShowSharing(true)}
         onLogout={handleLogout}
         activeJobs={activeJobs}
+        sharedDashboards={sharedDashboards}
+        viewingDashboard={viewingDashboard}
+        onSwitchDashboard={handleSwitchDashboard}
+        readOnly={viewingDashboard?.permission === 'read'}
       />
 
       {/* Notification banner */}
@@ -296,9 +327,12 @@ function App() {
       )}
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Uploader onUpload={handleUpload} />
-        </div>
+        {/* Hide uploader when viewing read-only shared dashboard */}
+        {(!viewingDashboard || viewingDashboard.permission === 'readwrite') && (
+          <div className="mb-8">
+            <Uploader onUpload={handleUpload} />
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12 text-gray-500">Loading...</div>
@@ -311,6 +345,7 @@ function App() {
             processing={processing}
             deleting={deleting}
             timezone={timezone}
+            readOnly={viewingDashboard?.permission === 'read'}
           />
         )}
       </main>
@@ -348,6 +383,11 @@ function App() {
         isOpen={showQueue}
         onClose={() => setShowQueue(false)}
         jobs={activeJobs}
+      />
+
+      <SharingModal
+        isOpen={showSharing}
+        onClose={() => setShowSharing(false)}
       />
     </div>
   );

@@ -4,6 +4,23 @@
 
 const API_BASE = '/api';
 
+// View context for shared dashboards
+let _viewAsUserId: string | null = null;
+
+export function setViewContext(userId: string | null) {
+  _viewAsUserId = userId;
+}
+
+export function getViewContext(): string | null {
+  return _viewAsUserId;
+}
+
+function appendViewAs(url: string): string {
+  if (!_viewAsUserId) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}view_as=${_viewAsUserId}`;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -119,6 +136,20 @@ export interface GoogleAuthStatus {
   email: string | null;
 }
 
+export interface ShareEntry {
+  id: string;
+  shared_with_email: string;
+  permission: string;
+  created_at: string;
+}
+
+export interface SharedWithMeEntry {
+  owner_user_id: string;
+  owner_email: string;
+  owner_name: string | null;
+  permission: string;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorDetail = `HTTP ${response.status}`;
@@ -166,12 +197,12 @@ export const api = {
 
   // Worksheets
   async listWorksheets(): Promise<WorksheetSummary[]> {
-    const response = await fetch(`${API_BASE}/worksheets`);
+    const response = await fetch(appendViewAs(`${API_BASE}/worksheets`));
     return handleResponse(response);
   },
 
   async getWorksheet(id: string): Promise<unknown> {
-    const response = await fetch(`${API_BASE}/worksheets/${id}`);
+    const response = await fetch(appendViewAs(`${API_BASE}/worksheets/${id}`));
     return handleResponse(response);
   },
 
@@ -248,11 +279,11 @@ export const api = {
   },
 
   getMarkedPdfUrl(id: string, download: boolean = false): string {
-    return `${API_BASE}/worksheets/${id}/marked${download ? '?download=true' : ''}`;
+    return appendViewAs(`${API_BASE}/worksheets/${id}/marked${download ? '?download=true' : ''}`);
   },
 
   getReportPdfUrl(id: string, download: boolean = false): string {
-    return `${API_BASE}/worksheets/${id}/report${download ? '?download=true' : ''}`;
+    return appendViewAs(`${API_BASE}/worksheets/${id}/report${download ? '?download=true' : ''}`);
   },
 
   // Settings API
@@ -330,5 +361,32 @@ export const api = {
 
   getOriginalPdfUrl(id: string, download: boolean = false): string {
     return `${API_BASE}/uploads/${id}${download ? '?download=true' : ''}`;
+  },
+
+  // Sharing
+  async getShares(): Promise<ShareEntry[]> {
+    const response = await fetch(`${API_BASE}/shares`);
+    return handleResponse(response);
+  },
+
+  async addShare(email: string, permission: string = 'read'): Promise<ShareEntry> {
+    const response = await fetch(`${API_BASE}/shares`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, permission }),
+    });
+    return handleResponse(response);
+  },
+
+  async removeShare(email: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/shares/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  async getSharedWithMe(): Promise<SharedWithMeEntry[]> {
+    const response = await fetch(`${API_BASE}/shared-with-me`);
+    return handleResponse(response);
   },
 };
