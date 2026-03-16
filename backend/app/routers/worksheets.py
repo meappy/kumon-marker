@@ -31,7 +31,9 @@ from app.services.queue import create_and_queue_job, is_queue_enabled
 from app.core.config import settings, get_effective_setting
 from app.core.session import (
     User,
+    ViewContext,
     get_current_user,
+    get_view_context,
     get_user_data_dir,
     get_user_token_path,
 )
@@ -72,9 +74,9 @@ async def health_check():
 
 
 @router.get("/worksheets", response_model=list[WorksheetSummary])
-async def list_worksheets(user: User = Depends(get_current_user)):
-    """List all processed worksheets for the current user."""
-    data_dir = get_data_dir(user)
+async def list_worksheets(ctx: ViewContext = Depends(get_view_context)):
+    """List all processed worksheets for the current user (or shared dashboard)."""
+    data_dir = get_user_data_dir(ctx.data_user_id)
     results_dir = data_dir / "results"
     marked_dir = data_dir / "marked"
     reports_dir = data_dir / "reports"
@@ -139,9 +141,13 @@ async def list_worksheets(user: User = Depends(get_current_user)):
 
 
 @router.get("/worksheets/{worksheet_id}")
-async def get_worksheet(worksheet_id: str, user: User = Depends(get_current_user)):
+async def get_worksheet(
+    worksheet_id: str, ctx: ViewContext = Depends(get_view_context)
+):
     """Get worksheet analysis results."""
-    results_path = get_data_dir(user) / "results" / f"{worksheet_id}.json"
+    results_path = (
+        get_user_data_dir(ctx.data_user_id) / "results" / f"{worksheet_id}.json"
+    )
 
     if not results_path.exists():
         raise HTTPException(status_code=404, detail="Worksheet not found")
@@ -154,10 +160,12 @@ async def get_worksheet(worksheet_id: str, user: User = Depends(get_current_user
 async def get_marked_pdf(
     worksheet_id: str,
     download: bool = False,
-    user: User = Depends(get_current_user),
+    ctx: ViewContext = Depends(get_view_context),
 ):
     """Get the marked PDF (inline for preview, or as download)."""
-    marked_path = get_data_dir(user) / "marked" / f"{worksheet_id}_marked.pdf"
+    marked_path = (
+        get_user_data_dir(ctx.data_user_id) / "marked" / f"{worksheet_id}_marked.pdf"
+    )
 
     if not marked_path.exists():
         raise HTTPException(status_code=404, detail="Marked PDF not found")
@@ -174,10 +182,12 @@ async def get_marked_pdf(
 async def get_report_pdf(
     worksheet_id: str,
     download: bool = False,
-    user: User = Depends(get_current_user),
+    ctx: ViewContext = Depends(get_view_context),
 ):
     """Get the report PDF (inline for preview, or as download)."""
-    report_path = get_data_dir(user) / "reports" / f"{worksheet_id}_report.pdf"
+    report_path = (
+        get_user_data_dir(ctx.data_user_id) / "reports" / f"{worksheet_id}_report.pdf"
+    )
 
     if not report_path.exists():
         raise HTTPException(status_code=404, detail="Report not found")
