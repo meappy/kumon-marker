@@ -130,6 +130,18 @@ spec:
             {{- else if .Values.database }}
             - name: DATABASE_URL
               value: "{{ .Values.database.driver | default "postgresql" }}://{{ .Values.database.user }}:$(POSTGRESQL_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}?sslmode=require"
+            {{- if .Values.database.poolSize }}
+            - name: DB_POOL_SIZE
+              value: {{ .Values.database.poolSize | quote }}
+            {{- end }}
+            {{- if .Values.database.maxOverflow }}
+            - name: DB_MAX_OVERFLOW
+              value: {{ .Values.database.maxOverflow | quote }}
+            {{- end }}
+            {{- if .Values.database.poolRecycle }}
+            - name: DB_POOL_RECYCLE
+              value: {{ .Values.database.poolRecycle | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.config.auth }}
             {{- if .Values.config.auth.allowedUsers }}
