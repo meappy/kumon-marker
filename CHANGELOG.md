@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/meappy/kumon-marker/compare/v1.7.1...v1.7.2) (2026-03-16)
+
+
+### Bug Fixes
+
+* disable in-cluster PG, use ClusterIP service for DO ([#46](https://github.com/meappy/kumon-marker/issues/46)) ([b4682e5](https://github.com/meappy/kumon-marker/commit/b4682e5078dcaf46aac0134c0d41b4052532d875))
+
 ## [1.7.1](https://github.com/meappy/kumon-marker/compare/v1.7.0...v1.7.1) (2026-03-16)
 
 
