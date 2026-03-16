@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/meappy/kumon-marker/compare/v1.7.0...v1.7.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* rename database from kumon to kumon-marker ([#45](https://github.com/meappy/kumon-marker/issues/45)) ([177a501](https://github.com/meappy/kumon-marker/commit/177a5019a1315d33e7973e07c95ad940f1cb1dd7))
+
 # [1.7.0](https://github.com/meappy/kumon-marker/compare/v1.6.0...v1.7.0) (2026-03-16)
 
 
