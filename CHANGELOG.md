@@ -1,3 +1,10 @@
+## [1.7.7](https://github.com/meappy/kumon-marker/compare/v1.7.6...v1.7.7) (2026-03-16)
+
+
+### Bug Fixes
+
+* DB connection pooling and worker external DB support ([#51](https://github.com/meappy/kumon-marker/issues/51)) ([9f79972](https://github.com/meappy/kumon-marker/commit/9f7997257586cf513fae3dbb7176d9f98fb9717c))
+
 ## [1.7.6](https://github.com/meappy/kumon-marker/compare/v1.7.5...v1.7.6) (2026-03-16)
 
 
