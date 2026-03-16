@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/meappy/kumon-marker/compare/v1.5.4...v1.6.0) (2026-03-16)
+
+
+### Features
+
+* add dashboard sharing with read/readwrite permissions ([#43](https://github.com/meappy/kumon-marker/issues/43)) ([4486d5f](https://github.com/meappy/kumon-marker/commit/4486d5f1f8bc5f322005e98955c3407d6c1eaff5))
+
 ## [1.5.4](https://github.com/meappy/kumon-marker/compare/v1.5.3...v1.5.4) (2026-03-15)
 
 
