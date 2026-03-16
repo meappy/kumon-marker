@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/meappy/kumon-marker/compare/v1.6.0...v1.7.0) (2026-03-16)
+
+
+### Features
+
+* switch to DO Managed PostgreSQL ([#44](https://github.com/meappy/kumon-marker/issues/44)) ([578ad54](https://github.com/meappy/kumon-marker/commit/578ad540621edce5dae0b318433dbe280a1e023a))
+
 # [1.6.0](https://github.com/meappy/kumon-marker/compare/v1.5.4...v1.6.0) (2026-03-16)
 
 
