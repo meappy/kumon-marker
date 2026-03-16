@@ -116,6 +116,7 @@ def get_engine():
             max_overflow=2,
             pool_pre_ping=True,
             pool_recycle=300,
+            use_native_hstore=False,
         )
     return _engine
 
