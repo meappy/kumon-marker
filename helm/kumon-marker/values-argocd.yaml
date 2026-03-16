@@ -11,9 +11,8 @@ imagePullSecrets:
   - name: ghcr-secret
 
 service:
-  type: NodePort
+  type: ClusterIP
   port: 8000
-  nodePort: 30080
 
 ingress:
   enabled: true
@@ -65,10 +64,9 @@ rabbitmq:
   enabled: true
   # password supplied by private secrets repo
 
-# PostgreSQL configuration
+# PostgreSQL — disabled, using DO Managed PostgreSQL
 postgresql:
-  enabled: true
-  # password supplied by private secrets repo
+  enabled: false
 
 # Worker configuration
 worker:
