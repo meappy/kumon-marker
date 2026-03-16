@@ -1,5 +1,6 @@
 """Database models for job tracking and dashboard sharing."""
 
+import os
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -112,10 +113,10 @@ def get_engine():
         _engine = create_engine(
             settings.database_url,
             echo=settings.debug,
-            pool_size=3,
-            max_overflow=2,
+            pool_size=int(os.environ.get("DB_POOL_SIZE", "3")),
+            max_overflow=int(os.environ.get("DB_MAX_OVERFLOW", "2")),
             pool_pre_ping=True,
-            pool_recycle=300,
+            pool_recycle=int(os.environ.get("DB_POOL_RECYCLE", "300")),
             use_native_hstore=False,
         )
     return _engine
