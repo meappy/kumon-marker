@@ -1,3 +1,10 @@
+## [1.7.10](https://github.com/meappy/kumon-marker/compare/v1.7.9...v1.7.10) (2026-03-16)
+
+
+### Bug Fixes
+
+* add sslmode=require for DO PgBouncer ([#54](https://github.com/meappy/kumon-marker/issues/54)) ([759ba63](https://github.com/meappy/kumon-marker/commit/759ba63c00b30aff3a3c44bbb094eed682022696))
+
 ## [1.7.9](https://github.com/meappy/kumon-marker/compare/v1.7.8...v1.7.9) (2026-03-16)
 
 
