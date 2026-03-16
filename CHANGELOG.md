@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/meappy/kumon-marker/compare/v1.8.0...v1.9.0) (2026-03-16)
+
+
+### Features
+
+* wire DB pool env vars through Helm values ([#56](https://github.com/meappy/kumon-marker/issues/56)) ([ca37015](https://github.com/meappy/kumon-marker/commit/ca37015fc0168755f12cea05f63be53697d090f3))
+
 # [1.8.0](https://github.com/meappy/kumon-marker/compare/v1.7.10...v1.8.0) (2026-03-16)
 
 
