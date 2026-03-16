@@ -1,3 +1,10 @@
+## [1.7.9](https://github.com/meappy/kumon-marker/compare/v1.7.8...v1.7.9) (2026-03-16)
+
+
+### Bug Fixes
+
+* disable native hstore for PgBouncer compatibility ([#53](https://github.com/meappy/kumon-marker/issues/53)) ([1db21ef](https://github.com/meappy/kumon-marker/commit/1db21ef4a38ed403915a62e87c4882c683763fea))
+
 ## [1.7.8](https://github.com/meappy/kumon-marker/compare/v1.7.7...v1.7.8) (2026-03-16)
 
 
