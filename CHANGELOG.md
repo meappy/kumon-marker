@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/meappy/kumon-marker/compare/v1.9.0...v1.9.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* RabbitMQ Recreate strategy for RWO volume ([#57](https://github.com/meappy/kumon-marker/issues/57)) ([7beb7ba](https://github.com/meappy/kumon-marker/commit/7beb7ba01eb1e6e3eb49b21e7e3122114c36da65))
+
 # [1.9.0](https://github.com/meappy/kumon-marker/compare/v1.8.0...v1.9.0) (2026-03-16)
 
 
