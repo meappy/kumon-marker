@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/meappy/kumon-marker/compare/v1.9.1...v1.10.0) (2026-03-18)
+
+
+### Features
+
+* switch data and RabbitMQ PVCs to RWX storage (openebs-rwx) ([#58](https://github.com/meappy/kumon-marker/issues/58)) ([35b5aae](https://github.com/meappy/kumon-marker/commit/35b5aae84c3ccd00aa5e34962aca6745834f78bd))
+
 ## [1.9.1](https://github.com/meappy/kumon-marker/compare/v1.9.0...v1.9.1) (2026-03-17)
 
 
