@@ -51,8 +51,8 @@ resources:
 persistence:
   enabled: true
   size: 5Gi
-  storageClass: ""
-  accessMode: ReadWriteOnce
+  storageClass: "openebs-rwx"
+  accessMode: ReadWriteMany
   # Keep the PVC when helm release is deleted (prevents data loss)
   keepOnDelete: true
 
@@ -121,8 +121,8 @@ rabbitmq:
   persistence:
     enabled: true
     size: 1Gi
-    storageClass: ""
-    accessMode: ReadWriteOnce
+    storageClass: "openebs-rwx"
+    accessMode: ReadWriteMany
     keepOnDelete: true
   resources:
     limits:
