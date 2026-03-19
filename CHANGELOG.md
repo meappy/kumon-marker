@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/meappy/kumon-marker/compare/v1.10.0...v1.10.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* set openebs-rwx storage class in argocd values ([#59](https://github.com/meappy/kumon-marker/issues/59)) ([1af616f](https://github.com/meappy/kumon-marker/commit/1af616fd8b018d6a1bbc5d692ee0d32f54ef0337))
+
 # [1.10.0](https://github.com/meappy/kumon-marker/compare/v1.9.1...v1.10.0) (2026-03-18)
 
 
