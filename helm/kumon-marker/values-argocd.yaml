@@ -21,7 +21,8 @@ ingress:
 persistence:
   enabled: true
   size: 5Gi
-  storageClass: ""
+  storageClass: "openebs-rwx"
+  accessMode: ReadWriteMany
 
 resources:
   limits:
