@@ -56,6 +56,22 @@ class Job(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
+    def to_dict(self) -> dict:
+        """Convert job to dictionary for API responses."""
+        return {
+            "id": self.id,
+            "worksheet_id": self.worksheet_id,
+            "user_id": self.user_id,
+            "status": self.status,
+            "progress": self.progress,
+            "error": self.error,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
+        }
+
 
 class Share(Base):
     """Share model for dashboard sharing between users."""
@@ -83,22 +99,6 @@ class Share(Base):
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-
-    def to_dict(self) -> dict:
-        """Convert job to dictionary for API responses."""
-        return {
-            "id": self.id,
-            "worksheet_id": self.worksheet_id,
-            "user_id": self.user_id,
-            "status": self.status,
-            "progress": self.progress,
-            "error": self.error,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
-        }
 
 
 # Database engine and session factory
