@@ -1,3 +1,10 @@
+## [1.10.2](https://github.com/meappy/kumon-marker/compare/v1.10.1...v1.10.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* switch from claude-opus-4-6 to claude-haiku-4-5 for OAuth token compatibility ([#60](https://github.com/meappy/kumon-marker/issues/60)) ([0b2da7f](https://github.com/meappy/kumon-marker/commit/0b2da7f4d8d4e80b638b88c5e2878076af2bce84))
+
 ## [1.10.1](https://github.com/meappy/kumon-marker/compare/v1.10.0...v1.10.1) (2026-03-19)
 
 
