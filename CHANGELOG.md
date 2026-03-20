@@ -1,3 +1,10 @@
+## [1.10.3](https://github.com/meappy/kumon-marker/compare/v1.10.2...v1.10.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* restore to_dict() on Job model (was accidentally moved to Share) ([#61](https://github.com/meappy/kumon-marker/issues/61)) ([d67ba97](https://github.com/meappy/kumon-marker/commit/d67ba971d5def9422f67806b073db7a038c1efa4))
+
 ## [1.10.2](https://github.com/meappy/kumon-marker/compare/v1.10.1...v1.10.2) (2026-03-20)
 
 
