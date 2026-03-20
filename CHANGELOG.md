@@ -1,3 +1,10 @@
+## [1.10.5](https://github.com/meappy/kumon-marker/compare/v1.10.4...v1.10.5) (2026-03-20)
+
+
+### Bug Fixes
+
+* add sslmode=require and pool config to worker DATABASE_URL template ([#63](https://github.com/meappy/kumon-marker/issues/63)) ([46620ac](https://github.com/meappy/kumon-marker/commit/46620acff16f9f7b91fb971b340138a128c81449))
+
 ## [1.10.4](https://github.com/meappy/kumon-marker/compare/v1.10.3...v1.10.4) (2026-03-20)
 
 
