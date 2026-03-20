@@ -1,3 +1,10 @@
+## [1.10.4](https://github.com/meappy/kumon-marker/compare/v1.10.3...v1.10.4) (2026-03-20)
+
+
+### Bug Fixes
+
+* GDrive modal shows tick immediately instead of job progress ([#62](https://github.com/meappy/kumon-marker/issues/62)) ([ac2cc04](https://github.com/meappy/kumon-marker/commit/ac2cc04188c2c034db46b074ce018a884707ed0b))
+
 ## [1.10.3](https://github.com/meappy/kumon-marker/compare/v1.10.2...v1.10.3) (2026-03-20)
 
 
