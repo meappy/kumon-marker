@@ -1,3 +1,10 @@
+## [1.10.6](https://github.com/meappy/kumon-marker/compare/v1.10.5...v1.10.6) (2026-03-20)
+
+
+### Bug Fixes
+
+* include postgresql-password in secret regardless of postgresql.enabled ([#64](https://github.com/meappy/kumon-marker/issues/64)) ([09bfd37](https://github.com/meappy/kumon-marker/commit/09bfd37c439f8a5b78148372b9dc77c6dbd08c4f))
+
 ## [1.10.5](https://github.com/meappy/kumon-marker/compare/v1.10.4...v1.10.5) (2026-03-20)
 
 
