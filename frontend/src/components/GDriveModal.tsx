@@ -211,7 +211,11 @@ export function GDriveModal({ isOpen, onClose, onSync, worksheets, timezone, act
       (async () => {
         try {
           await onSync(next.fileId, next.filename, next.studentName);
-          setCompleted((prev) => new Set([...prev, next.fileId]));
+          // Only mark completed locally if queue is disabled (direct processing).
+          // When queue is enabled, job status polling drives the UI instead.
+          if (!queueEnabled) {
+            setCompleted((prev) => new Set([...prev, next.fileId]));
+          }
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Marking failed');
         } finally {
