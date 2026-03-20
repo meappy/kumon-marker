@@ -112,7 +112,15 @@ spec:
               value: "postgresql://{{ .Values.postgresql.username }}:$(POSTGRESQL_PASSWORD)@{{ include "kumon-marker.fullname" . }}-postgresql:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
             {{- else if .Values.database }}
             - name: DATABASE_URL
-              value: "{{ .Values.database.driver | default "postgresql" }}://{{ .Values.database.user }}:$(POSTGRESQL_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}"
+              value: "{{ .Values.database.driver | default "postgresql" }}://{{ .Values.database.user }}:$(POSTGRESQL_PASSWORD)@{{ .Values.database.host }}:{{ .Values.database.port }}/{{ .Values.database.name }}?sslmode=require"
+            {{- if .Values.database.poolSize }}
+            - name: DB_POOL_SIZE
+              value: {{ .Values.database.poolSize | quote }}
+            {{- end }}
+            {{- if .Values.database.maxOverflow }}
+            - name: DB_MAX_OVERFLOW
+              value: {{ .Values.database.maxOverflow | quote }}
+            {{- end }}
             {{- end }}
           volumeMounts:
             - name: data
