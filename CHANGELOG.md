@@ -1,3 +1,10 @@
+## [1.10.7](https://github.com/meappy/kumon-marker/compare/v1.10.6...v1.10.7) (2026-03-21)
+
+
+### Bug Fixes
+
+* increase worker memory limit from 256Mi to 512Mi to prevent OOMKilled during PDF annotation ([#65](https://github.com/meappy/kumon-marker/issues/65)) ([278faa0](https://github.com/meappy/kumon-marker/commit/278faa0cfc6fc600788de6a68424ef5415fba049))
+
 ## [1.10.6](https://github.com/meappy/kumon-marker/compare/v1.10.5...v1.10.6) (2026-03-20)
 
 
