@@ -1,3 +1,10 @@
+## [1.10.8](https://github.com/meappy/kumon-marker/compare/v1.10.7...v1.10.8) (2026-03-21)
+
+
+### Bug Fixes
+
+* pin image to 1.10.6 — 1.10.7 Docker build failed ([12dd744](https://github.com/meappy/kumon-marker/commit/12dd744040ea621f7272976e656c7e908a2b531c))
+
 ## [1.10.7](https://github.com/meappy/kumon-marker/compare/v1.10.6...v1.10.7) (2026-03-21)
 
 
