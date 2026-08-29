@@ -121,6 +121,7 @@ jobs:
   build-and-deploy:
     name: Build & Deploy to Dev
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [lint-backend, lint-frontend, lint-helm]
     if: github.event_name == 'push'
     permissions:
