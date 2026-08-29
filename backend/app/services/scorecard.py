@@ -16,7 +16,7 @@ Two rendering modes:
 import io
 import json
 import uuid
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -26,7 +26,6 @@ from reportlab.pdfgen import canvas
 
 from app.core.config import get_effective_setting
 from app.models.schemas import PageResult, ScoreEntry, ScoreLog, WorksheetHeader
-
 
 INK = Color(0.05, 0.15, 0.55)
 RULE = Color(0.35, 0.35, 0.35)
@@ -468,7 +467,7 @@ def render_generated(
         c.drawRightString(
             GEN_WIDTH - GEN_MARGIN,
             20,
-            f"Kumon Marker — generated {datetime.now().strftime('%d %b %Y')}",
+            f"Kumon Marker — generated {datetime.now().astimezone().strftime('%d %b %Y')}",
         )
         c.showPage()
     c.save()

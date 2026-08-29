@@ -35,7 +35,7 @@ class TestHeaderExtraction:
 
     @pytest.mark.parametrize("value", ["not a time", "25:00", "3:99", "", "3"])
     def test_rejects_junk_times(self, value):
-        header = extract_header_from_response('{"time_started": "%s"}' % value)
+        header = extract_header_from_response(f'{{"time_started": "{value}"}}')
         assert header.time_started is None
 
     def test_rejects_a_non_string_time(self):
@@ -47,11 +47,11 @@ class TestHeaderExtraction:
 
     @pytest.mark.parametrize("value", ["yesterday", "28-8-26", "28", ""])
     def test_rejects_junk_dates(self, value):
-        assert extract_header_from_response('{"date": "%s"}' % value).date is None
+        assert extract_header_from_response(f'{{"date": "{value}"}}').date is None
 
     @pytest.mark.parametrize("value", ["28/8/26", "28/8", "5/12/2026"])
     def test_accepts_real_dates(self, value):
-        assert extract_header_from_response('{"date": "%s"}' % value).date == value
+        assert extract_header_from_response(f'{{"date": "{value}"}}').date == value
 
     def test_malformed_response_is_not_fatal(self):
         header = extract_header_from_response("the model refused to answer")

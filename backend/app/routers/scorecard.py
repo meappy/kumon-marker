@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from app.core.session import ViewContext, get_view_context, get_user_data_dir
+from app.core.session import ViewContext, get_user_data_dir, get_view_context
 from app.models.schemas import PrintRequest, ScoreEntry, ScoreLog
 from app.services import scorecard
 from app.services.printing import (
