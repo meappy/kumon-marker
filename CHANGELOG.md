@@ -1,3 +1,15 @@
+# [1.11.0](https://github.com/meappy/kumon-marker/compare/v1.10.8...v1.11.0) (2026-08-29)
+
+
+### Bug Fixes
+
+* pin ruff in the release workflow too ([#67](https://github.com/meappy/kumon-marker/issues/67)) ([1f9be0a](https://github.com/meappy/kumon-marker/commit/1f9be0a306a1a6397b249571f4ddffa51bdb6c7c))
+
+
+### Features
+
+* record a Score Report row per packet and print from the app ([#66](https://github.com/meappy/kumon-marker/issues/66)) ([21fd545](https://github.com/meappy/kumon-marker/commit/21fd545a542976b34eec8541c907f9b37f1b97d0))
+
 ## [1.10.8](https://github.com/meappy/kumon-marker/compare/v1.10.7...v1.10.8) (2026-03-21)
 
 
