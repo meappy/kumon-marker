@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/meappy/kumon-marker/compare/v1.11.0...v1.11.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* build the frontend on the native platform, not under QEMU ([#68](https://github.com/meappy/kumon-marker/issues/68)) ([6b1331d](https://github.com/meappy/kumon-marker/commit/6b1331d44aaae4d0053ccbcef19f5b8a5e21687a))
+
 # [1.11.0](https://github.com/meappy/kumon-marker/compare/v1.10.8...v1.11.0) (2026-08-29)
 
 
