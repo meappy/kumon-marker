@@ -35,6 +35,27 @@ jobs:
           cd backend
           ruff check .
 
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -e . pytest
+
+      - name: Run pytest
+        run: |
+          cd backend
+          pytest -q
+
   lint-frontend:
     name: Lint Frontend
     runs-on: ubuntu-latest

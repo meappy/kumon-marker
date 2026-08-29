@@ -68,6 +68,15 @@ config:
   # Provider for LLM-based validation (empty = use same as visionProvider)
   validationProvider: ""
 
+  # Printing of marked worksheets and score cards, via CUPS.
+  # The container ships the CUPS client only, so cupsServer must point at a
+  # CUPS daemon that can reach the printer (e.g. "192.168.1.10:631").
+  printing:
+    enabled: false
+    cupsServer: ""
+    # Printer queue name; empty = that CUPS server's default
+    printerName: ""
+
   # Worksheet analysis settings
   worksheet:
     questionsPerPage: 10

@@ -89,6 +89,22 @@ function WorksheetCard({
   showStudentName = true,
   readOnly = false,
 }: WorksheetCardProps) {
+  const [printState, setPrintState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  const [printError, setPrintError] = useState<string | null>(null);
+
+  const printMarked = async () => {
+    setPrintState('busy');
+    setPrintError(null);
+    try {
+      await api.printWorksheet(ws.id, 'marked');
+      setPrintState('sent');
+      setTimeout(() => setPrintState('idle'), 4000);
+    } catch (err) {
+      setPrintError(err instanceof Error ? err.message : 'Print failed');
+      setPrintState('error');
+    }
+  };
+
   return (
     <div className="bg-white p-3 sm:p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -181,6 +197,35 @@ function WorksheetCard({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
+            </button>
+          )}
+          {ws.has_marked_pdf && (
+            <button
+              onClick={printMarked}
+              disabled={printState === 'busy'}
+              className={`p-1.5 rounded disabled:opacity-50 ${
+                printState === 'sent'
+                  ? 'text-green-600'
+                  : printState === 'error'
+                    ? 'text-red-600 hover:bg-red-50'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+              title={
+                printState === 'sent'
+                  ? 'Sent to printer'
+                  : printError ?? 'Print marked worksheet'
+              }
+            >
+              {printState === 'busy' ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+              )}
             </button>
           )}
           {!readOnly && (

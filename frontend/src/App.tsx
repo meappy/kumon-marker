@@ -10,6 +10,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { SharingModal } from './components/SharingModal';
 import { LoginPage } from './components/LoginPage';
 import { QueuePanel } from './components/QueuePanel';
+import { ScoreCardModal } from './components/ScoreCardModal';
 
 function App() {
   // Auth state
@@ -27,6 +28,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [showSharing, setShowSharing] = useState(false);
+  const [showScoreCard, setShowScoreCard] = useState(false);
   const [, setSyncing] = useState(false);
 
   // Sharing state
@@ -295,6 +297,7 @@ function App() {
         onQueueClick={() => setShowQueue(true)}
         onSettingsClick={() => setShowSettings(true)}
         onSharingClick={() => setShowSharing(true)}
+        onScoreCardClick={() => setShowScoreCard(true)}
         onLogout={handleLogout}
         activeJobs={activeJobs}
         sharedDashboards={sharedDashboards}
@@ -388,6 +391,12 @@ function App() {
       <SharingModal
         isOpen={showSharing}
         onClose={() => setShowSharing(false)}
+      />
+
+      <ScoreCardModal
+        isOpen={showScoreCard}
+        onClose={() => setShowScoreCard(false)}
+        readOnly={viewingDashboard?.permission === 'read'}
       />
     </div>
   );

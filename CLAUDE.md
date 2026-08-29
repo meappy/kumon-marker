@@ -59,11 +59,12 @@ helm template kumon-marker helm/kumon-marker/  # Test template rendering
 2. **Validation** (`services/checker.py`) — Confirms PDF is a Kumon worksheet, extracts sheet ID (e.g. `D166a`) via text layer, OCR or LLM (configurable)
 3. **Job Queue** (`services/queue.py`) — Creates a Job record in PostgreSQL and publishes to RabbitMQ
 4. **Worker** (`worker.py`) — Consumes job, runs the pipeline:
-   - Extracts student name via vision provider (`services/ocr.py:extract_name_with_vision`)
+   - Reads the handwritten header — name, date, start/finish times (`services/ocr.py:extract_header_with_vision`)
    - Analyses each page with vision AI (`services/ocr.py:analyse_worksheet`) — returns JSON with errors per page
    - Annotates the PDF (`services/annotator.py`) — green circle for all-correct pages, red ticks for errors
    - Generates a report PDF (`services/reporter.py`)
-5. **Download** — User downloads marked PDF and report from the UI
+5. **Score card** (`services/scorecard.py`) — Appends a row to the student's Score Report log: date and start/finish times read from the worksheet header, level, first sheet number, and a grade per worksheet
+6. **Download / print** — User downloads the marked PDF and report from the UI, or sends either (or the score card) to a printer
 
 ## Vision AI Providers
 
@@ -106,14 +107,44 @@ Settings are managed via `backend/app/core/config.py` using pydantic-settings. K
 | `GEMINI_API_KEY` | Google Gemini API key | |
 | `OPENAI_API_KEY` | OpenAI API key | |
 | `OLLAMA_BASE_URL` | Ollama server URL | `http://host.docker.internal:11434` |
+| `PRINT_ENABLED` | Allow printing via CUPS | `true` |
+| `PRINTER_NAME` | Printer queue name (empty = CUPS default) | `""` |
+| `CUPS_SERVER` | CUPS daemon to talk to, e.g. `192.168.1.10:631` (read by `lp` itself) | |
 
 Legacy `CLAUDE_MODE` env var is still supported and mapped automatically (`api` → `anthropic`, `cli` → `anthropic`).
 
 Runtime overrides are stored in `{DATA_DIR}/settings.json` and take precedence over env vars.
+
+## Score Report and Printing
+
+Each marked packet adds a row to a per-student Score Report log at
+`{DATA_DIR}/{user_id}/scorecard/log.json` — the same columns as the physical Kumon
+card (date, times, time used, level, sheet no, and a mark per worksheet). Rows are
+keyed by worksheet id, so re-processing a scan replaces its row rather than
+duplicating it. Rows are editable via the UI (Score Report in the header menu) or
+`PATCH /api/scorecard/{student}/entries/{id}`; the handwritten times often need a
+correction.
+
+Rendering has two modes:
+- **Generated** (default) — draws a clean A4-landscape card. Always works.
+- **Template overlay** — if `{DATA_DIR}/{user_id}/scorecard/template.pdf` exists (upload
+  a scan of the real card via `POST /api/scorecard/template`), rows are drawn onto it.
+  The default cell geometry in `scorecard.DEFAULT_GEOMETRY` was measured from a standard
+  Item 115 card; override it with the `scorecard_geometry` runtime setting if a scan sits
+  differently, and verify by rendering at 150 DPI and cropping.
+
+Printing shells out to `lp` (`services/printing.py`). The container ships `cups-client`
+only — point `CUPS_SERVER` at a CUPS daemon that can reach the printer. Jobs are sent
+with `fit-to-page` because worksheets are roughly square (576 x ~571pt), not A4.
+
+**Known gap:** the mark per worksheet comes from the marking percentage (the app's
+90/70/50 bands), not from the mistakes table printed on each sheet — and those tables
+differ between sheets (F96a is A<=1 mistake, F98a is A=0). Check the marks against the
+worksheet before filing the card.
 
 ## Conventions
 
 - British English spelling throughout (e.g. "analyse", "colour", "initialise")
 - Kumon sheet IDs follow the pattern: letter + digits + a/b suffix (e.g. `B161a`, `D166b`)
 - Per-user data isolation: each user's files stored under `{DATA_DIR}/{user_id}/`
-- The `data/` directory structure: `scans/`, `marked/`, `reports/`, `results/`
+- The `data/` directory structure: `scans/`, `marked/`, `reports/`, `results/`, `scorecard/`
