@@ -4,7 +4,11 @@
 ARG VERSION=0.2.0
 
 # Stage 1: Build frontend
-FROM node:20-alpine AS frontend-builder
+# Pinned to the build platform: the output is static JS/CSS, identical for every
+# target arch, so there is nothing to gain from building it once per platform —
+# and running npm under QEMU emulation intermittently deadlocks (it hung a
+# release build for the full 6-hour job timeout).
+FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
 ARG VERSION
 WORKDIR /app/frontend

@@ -123,6 +123,8 @@ jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    # A QEMU/npm deadlock once ran this to the 6-hour job limit; fail fast instead
+    timeout-minutes: 45
     needs: [semantic-release]
     if: needs.semantic-release.outputs.new_release_published == 'true'
     permissions:
