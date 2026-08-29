@@ -40,6 +40,22 @@ spec:
             - name: VALIDATION_PROVIDER
               value: {{ .Values.config.validationProvider | quote }}
             {{- end }}
+            {{- if .Values.config.printing.enabled }}
+            # Printing (CUPS client)
+            - name: PRINT_ENABLED
+              value: "true"
+            {{- if .Values.config.printing.cupsServer }}
+            - name: CUPS_SERVER
+              value: {{ .Values.config.printing.cupsServer | quote }}
+            {{- end }}
+            {{- if .Values.config.printing.printerName }}
+            - name: PRINTER_NAME
+              value: {{ .Values.config.printing.printerName | quote }}
+            {{- end }}
+            {{- else }}
+            - name: PRINT_ENABLED
+              value: "false"
+            {{- end }}
             # Ollama
             - name: OLLAMA_BASE_URL
               value: {{ .Values.config.ollama.baseUrl | quote }}

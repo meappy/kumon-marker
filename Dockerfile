@@ -27,10 +27,13 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS runtime
 ARG VERSION
 WORKDIR /app
 
-# Install system dependencies for PyMuPDF and Tesseract OCR
+# System dependencies: PyMuPDF, Tesseract OCR, and the CUPS client for
+# printing (cups-client provides lp/lpstat; it talks to a CUPS server reached
+# via the CUPS_SERVER env var, so no local cupsd is needed)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmupdf-dev \
     tesseract-ocr \
+    cups-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend

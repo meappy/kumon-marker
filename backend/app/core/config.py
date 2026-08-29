@@ -70,13 +70,19 @@ class Settings(BaseSettings):
 
     # Multi-user auth
     allowed_users: str = ""  # Comma-separated list of allowed email addresses
-    session_secret: str = "change-me-in-production"  # Secret for signing session cookies
+    session_secret: str = (
+        "change-me-in-production"  # Secret for signing session cookies
+    )
 
     # Timezone for date display (IANA timezone name, e.g. "Australia/Sydney")
     timezone: str = "Australia/Sydney"
 
     # Job queue - limit concurrent processing jobs
     max_concurrent_jobs: int = 1
+
+    # Printing (via CUPS lp on the host)
+    print_enabled: bool = True
+    printer_name: str = ""  # Empty = system default printer
 
     # RabbitMQ configuration
     rabbitmq_url: str = ""  # e.g., amqp://user:pass@host:5672/
@@ -92,7 +98,11 @@ class Settings(BaseSettings):
         """Get list of allowed user emails."""
         if not self.allowed_users:
             return []
-        return [email.strip().lower() for email in self.allowed_users.split(",") if email.strip()]
+        return [
+            email.strip().lower()
+            for email in self.allowed_users.split(",")
+            if email.strip()
+        ]
 
 
 settings = Settings()

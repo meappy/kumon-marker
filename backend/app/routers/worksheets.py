@@ -17,6 +17,7 @@ from app.models.schemas import (
     PageResult,
     HealthResponse,
     UploadedFile,
+    WorksheetHeader,
 )
 from app.services.checker import (
     validate_kumon_worksheet,
@@ -26,6 +27,7 @@ from app.services.checker import (
 from app.services.ocr import analyse_worksheet
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
+from app.services import scorecard
 from app.services.gdrive import GDriveService, update_gdrive_cache_sheet_id
 from app.services.queue import create_and_queue_job, is_queue_enabled
 from app.core.config import settings, get_effective_setting
@@ -293,15 +295,21 @@ async def _do_process_worksheet(
         )
         subject = validation.subject or "maths"
 
-        # Extract student name using vision model only if not provided
-        if student_name is None:
-            try:
-                from app.services.ocr import extract_name_with_vision, pdf_page_to_image
+        # Read the handwritten header — the name plus the date and start and
+        # finish times the score card needs.
+        header = WorksheetHeader(student_name=student_name)
+        try:
+            from app.services.ocr import extract_header_with_vision, pdf_page_to_image
 
-                image_bytes = pdf_page_to_image(pdf_path, 0)
-                student_name = extract_name_with_vision(image_bytes)
-            except Exception as e:
-                print(f"Name extraction error: {e}")
+            image_bytes = pdf_page_to_image(pdf_path, 0)
+            header = extract_header_with_vision(image_bytes)
+        except Exception as e:
+            print(f"Header extraction error: {e}")
+
+        if student_name:
+            header.student_name = student_name
+        else:
+            student_name = header.student_name
 
         # Analyse with vision model
         results = analyse_worksheet(
@@ -335,6 +343,14 @@ async def _do_process_worksheet(
         reports_dir.mkdir(parents=True, exist_ok=True)
         report_path = reports_dir / f"{worksheet_id}_report.pdf"
         create_report(report_path, results, pdf_path.name, student_name)
+
+        # Record the packet on the student's score card
+        if student_name:
+            try:
+                entry = scorecard.build_entry(results, header, worksheet_id)
+                scorecard.add_entry(data_dir, student_name, entry)
+            except Exception as e:
+                print(f"Score card update failed for {worksheet_id}: {e}")
 
         # Update GDrive cache with corrected sheet_id from vision model
         if validation.sheet_id:

@@ -132,3 +132,47 @@ class UploadedFile(BaseModel):
     is_processed: bool = Field(
         default=False, description="Whether this file has been marked"
     )
+
+
+class WorksheetHeader(BaseModel):
+    """Header fields handwritten on the first page of a worksheet packet."""
+
+    student_name: str | None = None
+    date: str | None = Field(default=None, description="As written, e.g. '28/8/26'")
+    time_started: str | None = Field(default=None, description="e.g. '3:32'")
+    time_finished: str | None = Field(default=None, description="e.g. '4:18'")
+
+
+class ScoreEntry(BaseModel):
+    """One row of a Kumon Score Report — a single packet of worksheets."""
+
+    id: str = Field(description="Stable id for the row")
+    worksheet_id: str | None = Field(
+        default=None, description="Source worksheet this row was built from"
+    )
+    date: str = Field(default="", description="Date as written, e.g. '28/8'")
+    time_started: str = ""
+    time_finished: str = ""
+    time_used: str = Field(default="", description="Minutes, as a string")
+    level: str = Field(default="", description="Sheet level letter, e.g. 'F'")
+    sheet_no: str = Field(default="", description="First sheet number, e.g. '96'")
+    marks: list[str] = Field(
+        default_factory=list, description="Grade per worksheet, e.g. ['A','B','A']"
+    )
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class ScoreLog(BaseModel):
+    """All score report rows recorded for one student."""
+
+    student: str
+    entries: list[ScoreEntry] = Field(default_factory=list)
+
+
+class PrintRequest(BaseModel):
+    """Request to send a document to a printer."""
+
+    printer: str | None = Field(
+        default=None, description="Printer name; None = default"
+    )
+    copies: int = Field(default=1, ge=1, le=20)

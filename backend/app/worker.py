@@ -10,16 +10,18 @@ import pika
 from app.core.config import settings
 from app.core.session import get_user_data_dir
 from app.models.job import JobStatus, init_db
+from app.models.schemas import WorksheetHeader
 from app.services.queue import QUEUE_NAME, update_job_status
 from app.services.checker import validate_kumon_worksheet, extract_sheet_info
 from app.services.gdrive import update_gdrive_cache_sheet_id
 from app.services.ocr import (
     analyse_worksheet,
-    extract_name_with_vision,
+    extract_header_with_vision,
     pdf_page_to_image,
 )
 from app.services.annotator import create_marked_pdf
 from app.services.reporter import create_report
+from app.services import scorecard
 
 
 # Global flags for graceful shutdown
@@ -75,15 +77,21 @@ def process_worksheet(
         # Update progress - extracting name
         update_job_status(job_id, JobStatus.PROCESSING, progress=20)
 
-        # Extract student name using vision model only if not provided
-        if student_name is None:
-            try:
-                image_bytes = pdf_page_to_image(pdf_path, 0)
-                student_name = extract_name_with_vision(image_bytes)
-            except Exception as e:
-                print(f"Name extraction error for job {job_id}: {e}")
-        else:
+        # Read the handwritten header (name, date, start/finish times). The
+        # name may already be known, but the times are only used here and are
+        # what the score card needs, so still read the header.
+        header = WorksheetHeader(student_name=student_name)
+        try:
+            image_bytes = pdf_page_to_image(pdf_path, 0)
+            header = extract_header_with_vision(image_bytes)
+        except Exception as e:
+            print(f"Header extraction error for job {job_id}: {e}")
+
+        if student_name:
             print(f"Using pre-extracted student name: {student_name}")
+            header.student_name = student_name
+        else:
+            student_name = header.student_name
 
         # Update progress - starting OCR analysis
         update_job_status(job_id, JobStatus.PROCESSING, progress=30)
@@ -133,6 +141,20 @@ def process_worksheet(
         reports_dir.mkdir(parents=True, exist_ok=True)
         report_path = reports_dir / f"{worksheet_id}_report.pdf"
         create_report(report_path, results, pdf_path.name, student_name)
+
+        # Record the packet on the student's score card
+        if student_name:
+            try:
+                entry = scorecard.build_entry(results, header, worksheet_id)
+                scorecard.add_entry(data_dir, student_name, entry)
+                print(
+                    f"Score card row added for {student_name}: "
+                    f"{entry.level}{entry.sheet_no} {entry.marks}"
+                )
+            except Exception as e:
+                print(f"Score card update failed for job {job_id}: {e}")
+        else:
+            print("No student name — skipping score card row")
 
         # Update GDrive cache with corrected sheet_id from vision model
         if validation.sheet_id:

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import fitz
 
-from app.models.schemas import PageResult, ErrorDetail
+from app.models.schemas import PageResult, ErrorDetail, WorksheetHeader
 from app.core.config import get_effective_setting
 from app.services.providers import get_provider
 
@@ -144,46 +144,99 @@ def get_analysis_prompt(sheet_id: str, page_num: int, subject: str = "maths") ->
     return get_default_prompt(sheet_id, page_num, questions_per_page)
 
 
-def get_name_extraction_prompt() -> str:
-    """Get prompt for extracting student name from worksheet."""
-    return """Look at this Kumon worksheet image. Find the "Name" field (usually top right area).
+def get_header_extraction_prompt() -> str:
+    """Get prompt for extracting the handwritten header fields from a worksheet."""
+    return """Look at this Kumon worksheet image. The top right has a header box with
+"Name", "Date" and "Time" fields, all filled in by hand.
 
-Read the HANDWRITTEN student name written in the Name field.
+Read the HANDWRITTEN entries:
+- name: the student's name
+- date: the date, as written, in day/month/year order (e.g. "28/8/26")
+- time_started: the time in the "Time" field before the word "to" (e.g. "3:32")
+- time_finished: the time after the word "to" (e.g. "4:18")
+
+Use null for any field that is blank or unreadable. Ignore any times written
+elsewhere on the page — only the header "Time ... to ..." line counts.
 
 Return ONLY a JSON object:
-{"name": "<the student's name>" }
-
-If you cannot read the name or it's blank, return:
-{"name": null}
+{"name": "<name>", "date": "<date>", "time_started": "<time>", "time_finished": "<time>"}
 
 ONLY output the JSON, nothing else."""
 
 
-def extract_name_from_response(output: str) -> str | None:
-    """Extract name from vision model response."""
+def get_name_extraction_prompt() -> str:
+    """Get prompt for extracting student name from worksheet.
+
+    Kept for backwards compatibility; the header prompt returns the name too.
+    """
+    return get_header_extraction_prompt()
+
+
+_TIME_RE = re.compile(r"^\s*(\d{1,2})\s*[:.]\s*(\d{2})\s*$")
+
+
+def _clean_time(value) -> str | None:
+    """Normalise a handwritten time to 'H:MM', or None if it isn't one."""
+    if not isinstance(value, str):
+        return None
+    match = _TIME_RE.match(value)
+    if not match:
+        return None
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return f"{hour}:{minute:02d}"
+
+
+def _clean_date(value) -> str | None:
+    """Keep a handwritten date only if it looks like one."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return (
+        value if re.match(r"^\d{1,2}\s*/\s*\d{1,2}(\s*/\s*\d{2,4})?$", value) else None
+    )
+
+
+def extract_header_from_response(output: str) -> WorksheetHeader:
+    """Extract the header fields from a vision model response."""
     try:
         match = re.search(r"\{[\s\S]*\}", output)
         if match:
             data = json.loads(match.group())
             name = data.get("name")
-            if name and isinstance(name, str) and len(name.strip()) > 0:
-                return name.strip().title()
-    except (json.JSONDecodeError, KeyError):
+            if not (isinstance(name, str) and name.strip()):
+                name = None
+            return WorksheetHeader(
+                student_name=name.strip().title() if name else None,
+                date=_clean_date(data.get("date")),
+                time_started=_clean_time(data.get("time_started")),
+                time_finished=_clean_time(data.get("time_finished")),
+            )
+    except (json.JSONDecodeError, KeyError, TypeError):
         pass
-    return None
+    return WorksheetHeader()
+
+
+def extract_name_from_response(output: str) -> str | None:
+    """Extract name from vision model response."""
+    return extract_header_from_response(output).student_name
+
+
+def extract_header_with_vision(image_bytes: bytes) -> WorksheetHeader:
+    """Extract name, date and start/finish times using the configured provider."""
+    try:
+        provider = get_provider()
+        output = provider.analyse_image(image_bytes, get_header_extraction_prompt())
+        return extract_header_from_response(output)
+    except Exception as e:
+        print(f"Header extraction error: {e}")
+        return WorksheetHeader()
 
 
 def extract_name_with_vision(image_bytes: bytes) -> str | None:
     """Extract student name from worksheet using the configured vision provider."""
-    prompt = get_name_extraction_prompt()
-
-    try:
-        provider = get_provider()
-        output = provider.analyse_image(image_bytes, prompt)
-        return extract_name_from_response(output)
-    except Exception as e:
-        print(f"Name extraction error: {e}")
-        return None
+    return extract_header_with_vision(image_bytes).student_name
 
 
 def calculate_tick_position(

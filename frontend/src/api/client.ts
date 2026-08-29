@@ -49,6 +49,36 @@ export interface WorksheetSummary {
   sheet_id: string | null;
 }
 
+export interface ScoreEntry {
+  id: string;
+  worksheet_id: string | null;
+  date: string;
+  time_started: string;
+  time_finished: string;
+  time_used: string;
+  level: string;
+  sheet_no: string;
+  marks: string[];
+  created_at: string;
+}
+
+export interface ScoreLog {
+  student: string;
+  entries: ScoreEntry[];
+}
+
+export interface Printer {
+  name: string;
+  state: string;
+  enabled: boolean;
+  is_default: boolean;
+}
+
+export interface PrinterList {
+  available: boolean;
+  printers: Printer[];
+}
+
 export interface GDriveFile {
   id: string;
   name: string;
@@ -387,6 +417,81 @@ export const api = {
 
   async getSharedWithMe(): Promise<SharedWithMeEntry[]> {
     const response = await fetch(`${API_BASE}/shared-with-me`);
+    return handleResponse(response);
+  },
+
+  // Score card
+  async getScoreCards(): Promise<ScoreLog[]> {
+    const response = await fetch(appendViewAs(`${API_BASE}/scorecard`));
+    return handleResponse(response);
+  },
+
+  async updateScoreEntry(
+    student: string,
+    entryId: string,
+    fields: Partial<ScoreEntry>,
+  ): Promise<ScoreEntry> {
+    const response = await fetch(
+      appendViewAs(
+        `${API_BASE}/scorecard/${encodeURIComponent(student)}/entries/${entryId}`,
+      ),
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  async deleteScoreEntry(student: string, entryId: string): Promise<void> {
+    const response = await fetch(
+      appendViewAs(
+        `${API_BASE}/scorecard/${encodeURIComponent(student)}/entries/${entryId}`,
+      ),
+      { method: 'DELETE' },
+    );
+    return handleResponse(response);
+  },
+
+  getScoreCardPdfUrl(student: string): string {
+    return appendViewAs(`${API_BASE}/scorecard/${encodeURIComponent(student)}/pdf`);
+  },
+
+  // Printing
+  async getPrinters(): Promise<PrinterList> {
+    const response = await fetch(appendViewAs(`${API_BASE}/printers`));
+    return handleResponse(response);
+  },
+
+  async printScoreCard(
+    student: string,
+    printer?: string | null,
+  ): Promise<{ status: string; job_id: string }> {
+    const response = await fetch(
+      appendViewAs(`${API_BASE}/print/scorecard/${encodeURIComponent(student)}`),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ printer: printer ?? null, copies: 1 }),
+      },
+    );
+    return handleResponse(response);
+  },
+
+  async printWorksheet(
+    worksheetId: string,
+    document: 'marked' | 'report' = 'marked',
+    printer?: string | null,
+  ): Promise<{ status: string; job_id: string }> {
+    const response = await fetch(
+      appendViewAs(`${API_BASE}/print/worksheet/${worksheetId}?document=${document}`),
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ printer: printer ?? null, copies: 1 }),
+      },
+    );
     return handleResponse(response);
   },
 };
